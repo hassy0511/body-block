@@ -93,6 +93,8 @@ export function createButton(
 
   container.add([graphics, text]);
   container.setSize(width, height + 12);
+  // 押したあとにラベルを差し替えたい場合があるので取り出せるようにしておく
+  container.setData('label', text);
   container.setInteractive({ useHandCursor: true });
 
   const press = (): void => {

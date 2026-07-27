@@ -14,9 +14,9 @@ import { HOW_TO_SEEN_KEY } from './PlayerSelectScene';
 
 const STEPS = [
   '① がめんに でてくる かたちを おぼえる',
-  '② おなじ ポーズを して カメラの まえに たつ',
-  '③ 3・2・1 で しゃしんを パシャリ！',
-  '④ かたちが どれだけ ハマったか スコアが でるよ',
+  '② 「スタート！」を おしたら はなれて じゅんび',
+  '③ 10びょう いないに おなじ ポーズに なろう！',
+  '④ じかんが きたら パシャリ。ハマりどが でるよ',
 ];
 
 export class HowToScene extends Phaser.Scene {

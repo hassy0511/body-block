@@ -3,12 +3,20 @@
 
 let context: AudioContext | null = null;
 
+// 音が出せない環境でもゲーム進行を止めないよう、失敗したら以降は黙って諦める
+let audioUnavailable = false;
+
 function getContext(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
-  context ??= new AudioContext();
-  // iOS ではユーザー操作後まで suspended のままなので都度復帰させる
-  if (context.state === 'suspended') void context.resume();
-  return context;
+  if (typeof window === 'undefined' || audioUnavailable) return null;
+  try {
+    context ??= new AudioContext();
+    // iOS ではユーザー操作後まで suspended のままなので都度復帰させる
+    if (context.state === 'suspended') void context.resume();
+    return context;
+  } catch {
+    audioUnavailable = true;
+    return null;
+  }
 }
 
 /** 初回のタップ時に呼んで、以降の再生をできるようにする。 */
@@ -38,6 +46,20 @@ function playTone({
   const startAt = ctx.currentTime + delayMs / 1000;
   const endAt = startAt + durationMs / 1000;
 
+  try {
+    playToneOn(ctx, { frequency, durationMs, type, volume }, startAt, endAt);
+  } catch {
+    // 音が出せないだけで進行は止めない
+    audioUnavailable = true;
+  }
+}
+
+function playToneOn(
+  ctx: AudioContext,
+  { frequency, type = 'sine', volume = 0.2 }: Omit<ToneOptions, 'delayMs'>,
+  startAt: number,
+  endAt: number,
+): void {
   const oscillator = ctx.createOscillator();
   oscillator.type = type;
   oscillator.frequency.setValueAtTime(frequency, startAt);
@@ -53,9 +75,17 @@ function playTone({
   oscillator.stop(endAt + 0.02);
 }
 
-/** カウントダウンの「ピッ」。 */
-export function playCountdownBeep(): void {
-  playTone({ frequency: 660, durationMs: 140, type: 'triangle', volume: 0.18 });
+/**
+ * カウントダウンの「ピッ」。
+ * 残り時間がわずかなときは高く強い音にして、切迫感を出す。
+ */
+export function playCountdownBeep(urgent = false): void {
+  playTone({
+    frequency: urgent ? 990 : 660,
+    durationMs: urgent ? 180 : 140,
+    type: 'triangle',
+    volume: urgent ? 0.24 : 0.18,
+  });
 }
 
 /** シャッターの「カシャッ」。短い高音2発で代用する。 */
