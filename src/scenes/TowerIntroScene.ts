@@ -11,7 +11,6 @@ import {
   GAME_WIDTH,
   GAME_HEIGHT,
 } from '../ui/ui';
-import { DEFAULT_TIME_LIMIT_SEC } from './CaptureScene';
 
 export class TowerIntroScene extends Phaser.Scene {
   constructor() {
@@ -21,56 +20,53 @@ export class TowerIntroScene extends Phaser.Scene {
   create(): void {
     addBackground(this);
 
-    this.add.text(GAME_WIDTH / 2, 90, 'たいそうタワー', titleStyle(56)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 150, 'たいそうタワー', titleStyle(46)).setOrigin(0.5);
 
     [
       'すきな ポーズで しゃしんを とると',
-      'その かたちが ブロックに なるよ',
-      'タップした ところに おちてくるので',
-      'たかく つみあげよう！',
+      'その かたちが ブロックに なって',
+      'そのまま したへ おちてくるよ',
+      'なんかいも とって、たかく つみあげよう！',
     ].forEach((line, index) => {
-      this.add.text(GAME_WIDTH / 2, 190 + index * 46, line, bodyStyle(30)).setOrigin(0.5);
+      this.add
+        .text(GAME_WIDTH / 2, 290 + index * 60, line, bodyStyle(26))
+        .setOrigin(0.5)
+        .setWordWrapWidth(GAME_WIDTH - 60);
     });
 
-    this.add.text(GAME_WIDTH / 2, 410, 'なんにんで あそぶ？', bodyStyle(30)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 600, 'なんにんで あそぶ？', bodyStyle(28)).setOrigin(0.5);
 
     [1, 2, 3].forEach((count, index) => {
       createButton(
         this,
-        GAME_WIDTH / 2 - 320 + index * 320,
-        510,
+        GAME_WIDTH / 2,
+        700 + index * 130,
         `${count}にん`,
         () => {
           playTap();
           this.startCapture(count);
         },
-        { width: 220, height: 100, fontSize: 40 },
+        { width: 300, height: 96, fontSize: 36 },
       );
     });
 
     createButton(
       this,
       GAME_WIDTH / 2,
-      GAME_HEIGHT - 50,
+      GAME_HEIGHT - 100,
       'もどる',
       () => {
         playTap();
         this.scene.start('Title');
       },
-      { width: 200, height: 64, fontSize: 28 },
+      { width: 260, height: 70, fontSize: 28 },
     );
   }
 
   private startCapture(playerCount: number): void {
+    // モード2 は撮影と落下が同じ画面で続くので、撮影シーンは経由しない
     session.startGame(playerCount, []);
-    session.captureRequest = {
-      theme: null,
-      // 人数ぶんのかたまりが取れていることを撮影の条件にする
-      expectedBlobs: playerCount,
-      nextScene: 'Tower',
-      headline: 'すきな ポーズを して！',
-      timeLimitSec: DEFAULT_TIME_LIMIT_SEC,
-    };
-    this.scene.start('Capture');
+    session.captureRequest = null;
+    this.scene.start('Tower');
   }
 }

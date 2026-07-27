@@ -1,13 +1,16 @@
 // モード2「たいそうタワー」。SPEC_MODE2.md 参照。
 //
-// 撮影した体の切り抜きを剛体にして、タップした位置から落として積み上げる。
-// 目標ラインより高く、崩れずに一定時間たてばクリア。
+// 画面上部にカメラ、下に積み上げの舞台を置いた1画面構成。
+// 撮るたびに、その姿がそのまま下へ落ちて積み上がる。
+// 撮影と落下が同じ画面で続くのがこのモードの面白さなので、
+// シーンを行き来させず、ここで完結させる。
 
 import Phaser from 'phaser';
 import { buildCutoutPiece, type CutoutPiece } from '../core/cutout';
 import { registerDecomp } from '../core/physics';
 import { playFanfare, playTap } from '../core/sound';
 import { session } from '../game/session';
+import { CameraPanel, type CapturedFrame } from '../game/cameraPanel';
 import {
   addBackground,
   createButton,
@@ -18,37 +21,48 @@ import {
   GAME_HEIGHT,
 } from '../ui/ui';
 
-/** 積み上げるブロックの数。撮影した形を順番に使い回す。 */
-const TOTAL_BLOCKS = 8;
-/** 落とすブロックの高さ(px)。画面に対して大きすぎないようにする。 */
-const BLOCK_HEIGHT = 180;
-/** 床の高さ。 */
-const FLOOR_Y = GAME_HEIGHT - 40;
+/** 撮影できる回数。 */
+const TOTAL_SHOTS = 6;
+/** ポーズを作るための制限時間(秒)。 */
+const SHOT_TIME_LIMIT_SEC = 8;
+
+/** カメラの表示領域(画面上部)。 */
+const CAM_X = 0;
+const CAM_Y = 92;
+const CAM_WIDTH = GAME_WIDTH;
+const CAM_HEIGHT = 330;
+
+/** 積み上げの舞台。カメラの下から床まで。 */
+const ARENA_TOP = CAM_Y + CAM_HEIGHT;
+const FLOOR_Y = GAME_HEIGHT - 200;
 /**
- * ここより上まで積めたらクリア。
- * ポーズによってブロックの高さが変わるので、まずは届く見込みのある高さにしている。
- * 実機で遊んでみて手ごたえを見ながら調整する。
+ * ここまで積めたらクリア。舞台の上端(カメラのすぐ下)を目標にする。
+ * 「舞台を埋めきる」が目標なので分かりやすく、
+ * 塔がカメラの表示に重なるところまで伸びることもない。
  */
-const GOAL_Y = 470;
+const GOAL_Y = ARENA_TOP + 40;
+
+/** 落とすブロックの高さ(px)。 */
+const BLOCK_HEIGHT = 150;
 /** クリア判定に必要な「崩れずに保つ」時間(ミリ秒)。 */
-const HOLD_MS = 1500;
+const HOLD_MS = 1200;
 
 export class TowerScene extends Phaser.Scene {
-  private pieces: CutoutPiece[] = [];
+  private panel!: CameraPanel;
+  private blocks: Phaser.Physics.Matter.Image[] = [];
   private textureKeys: string[] = [];
-  private droppedBodies: Phaser.Physics.Matter.Image[] = [];
 
-  private remaining = TOTAL_BLOCKS;
-  private nextIndex = 0;
+  private remaining = TOTAL_SHOTS;
   private finished = false;
+  private busy = false;
   private goalReachedAt: number | null = null;
-
-  private remainingText!: Phaser.GameObjects.Text;
-  private statusText!: Phaser.GameObjects.Text;
-  private preview: Phaser.GameObjects.Image | null = null;
-  /** これまでに到達した最高地点(y が小さいほど高い)。 */
   private bestTop: number | null = null;
+
+  private statusText!: Phaser.GameObjects.Text;
+  private countText!: Phaser.GameObjects.Text;
   private bestMarker!: Phaser.GameObjects.Graphics;
+  private startButton!: Phaser.GameObjects.Container;
+  private startLabel!: Phaser.GameObjects.Text;
 
   constructor() {
     super('Tower');
@@ -58,40 +72,131 @@ export class TowerScene extends Phaser.Scene {
     addBackground(this);
     registerDecomp();
 
-    const captured = session.captured;
-    if (!captured || captured.blobs.length === 0) {
-      this.scene.start('Title');
-      return;
-    }
-
-    this.resetState();
-    this.buildPieces(captured);
-
-    if (this.pieces.length === 0) {
-      this.showFailure('からだを ブロックに できませんでした');
-      return;
-    }
+    this.blocks = [];
+    this.textureKeys = [];
+    this.remaining = TOTAL_SHOTS;
+    this.finished = false;
+    this.busy = false;
+    this.goalReachedAt = null;
+    this.bestTop = null;
 
     this.buildStage();
     this.buildHud();
-    this.setupInput();
-    this.setupTeardown();
-    this.showNextPreview();
+
+    this.panel = new CameraPanel(this, {
+      x: CAM_X,
+      y: CAM_Y,
+      width: CAM_WIDTH,
+      height: CAM_HEIGHT,
+      guideCount: session.playerCount,
+    });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      for (const key of this.textureKeys) {
+        if (this.textures.exists(key)) this.textures.remove(key);
+      }
+      this.textureKeys = [];
+    });
+
+    void this.panel.start().then((ok) => {
+      this.statusText.setText(
+        ok
+          ? `「スタート！」を おしてから ${SHOT_TIME_LIMIT_SEC}びょう。ポーズを とってね`
+          : 'カメラを つかえませんでした。きょかを かくにんしてね',
+      );
+    });
   }
 
-  private resetState(): void {
-    this.pieces = [];
-    this.textureKeys = [];
-    this.droppedBodies = [];
-    this.remaining = TOTAL_BLOCKS;
-    this.nextIndex = 0;
-    this.finished = false;
-    this.goalReachedAt = null;
-    this.preview = null;
-    this.bestTop = null;
+  private buildStage(): void {
+    // 舞台の下地
+    this.add.rectangle(
+      GAME_WIDTH / 2,
+      (ARENA_TOP + GAME_HEIGHT) / 2,
+      GAME_WIDTH,
+      GAME_HEIGHT - ARENA_TOP,
+      0xfdead0,
+    );
+
+    // 床
+    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 20, GAME_WIDTH, 40, COLORS.wall);
+    this.matter.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 30, GAME_WIDTH, 60, {
+      isStatic: true,
+      friction: 1,
+      frictionStatic: 1,
+    });
+
+    // 左右の壁。ブロックが画面外へ逃げないようにする
+    this.matter.add.rectangle(-30, GAME_HEIGHT / 2, 60, GAME_HEIGHT * 2, {
+      isStatic: true,
+      friction: 0.2,
+    });
+    this.matter.add.rectangle(GAME_WIDTH + 30, GAME_HEIGHT / 2, 60, GAME_HEIGHT * 2, {
+      isStatic: true,
+      friction: 0.2,
+    });
+
+    // 目標ライン
+    const line = this.add.graphics();
+    line.lineStyle(4, COLORS.accent, 0.9);
+    line.beginPath();
+    for (let x = 0; x < GAME_WIDTH; x += 22) {
+      line.moveTo(x, GOAL_Y);
+      line.lineTo(x + 12, GOAL_Y);
+    }
+    line.strokePath();
+    this.add.text(16, GOAL_Y + 6, 'ここまで つみあげよう！', bodyStyle(22)).setColor('#209aa1');
+
+    this.bestMarker = this.add.graphics();
   }
 
-  /** 目標までの到達度(0〜100%)。 */
+  private buildHud(): void {
+    this.add
+      .text(GAME_WIDTH / 2, 26, 'たいそうタワー', titleStyle(38))
+      .setOrigin(0.5)
+      .setDepth(20);
+
+    this.countText = this.add.text(16, 62, '', bodyStyle(24)).setOrigin(0, 0).setDepth(20);
+    this.updateCountText();
+
+    this.statusText = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 130, 'カメラを じゅんびちゅう...', bodyStyle(22))
+      .setOrigin(0.5)
+      .setWordWrapWidth(GAME_WIDTH - 40)
+      .setDepth(20);
+
+    this.startButton = createButton(
+      this,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT - 62,
+      'スタート！',
+      () => this.beginShot(),
+      { width: 300, height: 74, fontSize: 32 },
+    );
+    this.startLabel = this.startButton.getData('label') as Phaser.GameObjects.Text;
+
+    createButton(
+      this,
+      GAME_WIDTH - 88,
+      GAME_HEIGHT - 62,
+      'やめる',
+      () => {
+        playTap();
+        this.scene.start('Title');
+      },
+      {
+        width: 150,
+        height: 62,
+        fontSize: 24,
+        color: COLORS.accent,
+        pressedColor: COLORS.accentDark,
+      },
+    );
+  }
+
+  private updateCountText(): void {
+    this.countText.setText(`のこり ${this.remaining}かい / たかさ ${this.progressPercent()}%`);
+  }
+
   private progressPercent(): number {
     if (this.bestTop === null) return 0;
     const total = FLOOR_Y - GOAL_Y;
@@ -99,193 +204,128 @@ export class TowerScene extends Phaser.Scene {
     return Math.max(0, Math.min(100, Math.round((reached / total) * 100)));
   }
 
-  /** 到達した高さに印を引く。届かなくても「どこまでいけたか」が分かるようにする。 */
-  private updateBestMarker(): void {
-    this.bestMarker.clear();
-    if (this.bestTop === null) return;
-    this.bestMarker.lineStyle(3, COLORS.primary, 0.8);
-    this.bestMarker.beginPath();
-    this.bestMarker.moveTo(0, this.bestTop);
-    this.bestMarker.lineTo(GAME_WIDTH, this.bestTop);
-    this.bestMarker.strokePath();
+  private beginShot(): void {
+    if (this.finished || this.busy || this.remaining <= 0) return;
+    if (!this.panel.ready) return;
+
+    this.busy = true;
+    this.startLabel.setText('とりくみちゅう');
+    this.statusText.setText('はやく ポーズを とって！');
+
+    this.panel.beginCountdown(
+      SHOT_TIME_LIMIT_SEC,
+      (frame) => this.onCaptured(frame),
+      (message) => this.onFailed(message),
+    );
   }
 
-  /** 撮影結果から、かたまりごとのスプライトと輪郭を作る。 */
-  private buildPieces(captured: NonNullable<typeof session.captured>): void {
-    for (const blob of captured.blobs) {
-      const piece = buildCutoutPiece(captured.mask, blob, captured.labels, {
-        source: captured.image,
-        sourceWidth: captured.image.width,
-        sourceHeight: captured.image.height,
+  private onFailed(message: string): void {
+    this.busy = false;
+    this.startLabel.setText('もういちど');
+    this.statusText.setText(message);
+  }
+
+  private onCaptured(frame: CapturedFrame): void {
+    const { processed, image } = frame;
+    if (processed.accepted.length === 0) {
+      this.onFailed('うつっていないみたい。もういちど！');
+      return;
+    }
+
+    let dropped = 0;
+    for (const blob of processed.accepted) {
+      const piece = buildCutoutPiece(processed.mask, blob, processed.labels, {
+        source: image,
+        sourceWidth: image.width,
+        sourceHeight: image.height,
       });
       if (!piece) continue;
+      if (this.dropPiece(piece)) dropped += 1;
+    }
 
-      const key = `tower-piece-${this.pieces.length}`;
-      if (this.textures.exists(key)) this.textures.remove(key);
-      this.textures.addCanvas(key, piece.sprite.canvas);
+    if (dropped === 0) {
+      this.onFailed('からだを ブロックに できませんでした。もういちど！');
+      return;
+    }
 
-      this.pieces.push(piece);
-      this.textureKeys.push(key);
+    this.remaining -= 1;
+    this.updateCountText();
+    this.busy = false;
+
+    if (this.remaining > 0) {
+      this.startLabel.setText('つぎを とる！');
+      this.statusText.setText('つみあがったね！ つぎの ポーズを とろう');
+    } else {
+      this.startLabel.setText('おわり');
+      this.statusText.setText('ぜんぶ とったよ！ くずれないで〜');
     }
   }
 
-  private buildStage(): void {
-    // 床
-    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 20, GAME_WIDTH, 40, COLORS.wall);
-    this.matter.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 20, GAME_WIDTH, 40, {
-      isStatic: true,
-      friction: 0.9,
-    });
+  /** 切り抜きを剛体にして落とす。 */
+  private dropPiece(piece: CutoutPiece): boolean {
+    const key = `tower-piece-${this.textureKeys.length}`;
+    if (this.textures.exists(key)) this.textures.remove(key);
+    this.textures.addCanvas(key, piece.sprite.canvas);
+    this.textureKeys.push(key);
 
-    // 目標ライン
-    const line = this.add.graphics();
-    line.lineStyle(4, COLORS.accent, 0.9);
-    line.beginPath();
-    for (let x = 0; x < GAME_WIDTH; x += 24) {
-      line.moveTo(x, GOAL_Y);
-      line.lineTo(x + 14, GOAL_Y);
-    }
-    line.strokePath();
+    const scale = BLOCK_HEIGHT / piece.sprite.height;
+    const centroid = piece.contourCentroid;
 
-    this.add.text(24, GOAL_Y - 30, 'ここまで つみあげよう！', bodyStyle(24)).setColor('#209aa1');
-
-    this.bestMarker = this.add.graphics();
-
-    // 画面外へ落ちたブロックを消すため、世界の境界は作らない(左右は開けておく)
-    this.matter.world.setBounds(
-      -200,
-      -2000,
-      GAME_WIDTH + 400,
-      GAME_HEIGHT + 2400,
-      64,
-      false,
-      false,
-      false,
-      false,
-    );
-  }
-
-  private buildHud(): void {
-    // 中央の案内文と重ならないよう左上に置く
-    this.remainingText = this.add.text(24, 20, '', bodyStyle(26)).setOrigin(0, 0);
-
-    this.statusText = this.add
-      .text(GAME_WIDTH / 2, 26, 'タップした ところに おちるよ！', bodyStyle(28))
-      .setOrigin(0.5);
-
-    this.updateRemainingText();
-
-    createButton(
-      this,
-      110,
-      GAME_HEIGHT - 44,
-      'やめる',
-      () => {
-        playTap();
-        this.scene.start('Title');
-      },
-      {
-        width: 180,
-        height: 60,
-        fontSize: 26,
-        color: COLORS.accent,
-        pressedColor: COLORS.accentDark,
-      },
-    );
-  }
-
-  private updateRemainingText(): void {
-    this.remainingText.setText(`のこり ${this.remaining}こ / たかさ ${this.progressPercent()}%`);
-  }
-
-  private setupInput(): void {
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.finished || this.remaining <= 0) return;
-      // 下端のボタン付近は落下させない
-      if (pointer.y > GAME_HEIGHT - 80) return;
-      this.dropBlock(pointer.x);
-    });
-  }
-
-  private setupTeardown(): void {
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      for (const key of this.textureKeys) {
-        if (this.textures.exists(key)) this.textures.remove(key);
-      }
-      this.textureKeys = [];
-    });
-  }
-
-  /** 次に落ちるブロックを上部に薄く見せる。 */
-  private showNextPreview(): void {
-    this.preview?.destroy();
-    this.preview = null;
-    if (this.remaining <= 0) return;
-
-    const key = this.textureKeys[this.nextIndex % this.textureKeys.length]!;
-    this.preview = this.add
-      .image(GAME_WIDTH / 2, 110, key)
-      .setAlpha(0.45)
-      .setScale(this.scaleFor(this.nextIndex % this.pieces.length) * 0.6);
-  }
-
-  /** 画面に対して手ごろな大きさになる倍率。 */
-  private scaleFor(index: number): number {
-    const piece = this.pieces[index]!;
-    return BLOCK_HEIGHT / piece.sprite.height;
-  }
-
-  private dropBlock(x: number): void {
-    const index = this.nextIndex % this.pieces.length;
-    const piece = this.pieces[index]!;
-    const key = this.textureKeys[index]!;
-    const scale = this.scaleFor(index);
-
-    // 輪郭を Matter の頂点列へ。スプライト中心を原点にする。
+    // Matter は頂点列の重心を剛体の原点にするので、輪郭を重心基準へ寄せる。
+    // 絵の原点も同じ点に合わせることで、絵と当たり判定が一致する。
+    //
+    // ここで scale を掛けてはいけない。Phaser の setScale は剛体も一緒に拡縮するため、
+    // 掛けてしまうと二重に縮んで、見た目より遥かに小さい当たり判定になる。
     const vertices = piece.contour.map((point) => ({
-      x: (point.x - piece.sprite.width / 2) * scale,
-      y: (point.y - piece.sprite.height / 2) * scale,
+      x: point.x - centroid.x,
+      y: point.y - centroid.y,
     }));
 
-    const clampedX = Phaser.Math.Clamp(x, 80, GAME_WIDTH - 80);
+    // 落下位置は舞台の中央付近。少しだけ散らして毎回同じ積み方にならないようにする
+    const x = GAME_WIDTH / 2 + Phaser.Math.Between(-60, 60);
+    const y = ARENA_TOP - BLOCK_HEIGHT * 0.6;
+
+    // 先に置いたものほど重く、摩擦も強くする。
+    // 土台が軽いと新しいブロックに押されて崩れてしまうため。
+    const order = this.blocks.length;
+    const density = 0.006 * (1 + (TOTAL_SHOTS - order) * 0.35);
 
     let block: Phaser.Physics.Matter.Image;
     try {
-      block = this.matter.add.image(clampedX, -80, key, undefined, {
+      block = this.matter.add.image(x, y, key, undefined, {
         shape: { type: 'fromVerts', verts: vertices, flagInternal: true },
-        friction: 0.8,
-        frictionStatic: 1,
-        restitution: 0.02,
+        friction: 0.95,
+        frictionStatic: 1.2,
+        frictionAir: 0.02,
+        restitution: 0,
+        density,
       });
     } catch {
-      // 輪郭が複雑すぎて剛体化できない場合は、四角で代用して進行を止めない
-      block = this.matter.add.image(clampedX, -80, key, undefined, {
-        friction: 0.8,
-        restitution: 0.02,
+      // 凸分割に失敗する形もあるので、その場合は矩形で代用して進行を止めない
+      block = this.matter.add.image(x, y, key, undefined, {
+        friction: 0.95,
+        frictionStatic: 1.2,
+        restitution: 0,
+        density,
       });
     }
 
     block.setScale(scale);
-    block.setAngle(Phaser.Math.Between(-8, 8));
+    // 剛体の原点(輪郭の重心)に合わせて絵をずらす
+    block.setOrigin(centroid.x / piece.sprite.width, centroid.y / piece.sprite.height);
+    block.setAngle(Phaser.Math.Between(-5, 5));
 
-    this.droppedBodies.push(block);
-    this.remaining -= 1;
-    this.nextIndex += 1;
-    this.updateRemainingText();
+    this.blocks.push(block);
     playTap();
-
-    this.showNextPreview();
-
-    if (this.remaining <= 0) {
-      this.statusText.setText('ぜんぶ おとしたよ！ くずれないで〜');
-    }
+    return true;
   }
 
   update(): void {
+    this.panel.update();
     if (this.finished) return;
 
     // 画面外へ落ちたものは片付ける
-    this.droppedBodies = this.droppedBodies.filter((block) => {
+    this.blocks = this.blocks.filter((block) => {
       if (block.y > GAME_HEIGHT + 400) {
         block.destroy();
         return false;
@@ -293,41 +333,44 @@ export class TowerScene extends Phaser.Scene {
       return true;
     });
 
-    // 落下中のブロックは高さに数えない。積み上がって落ち着いた分だけで判定する。
     const topY = this.highestSettledPoint();
-    if (topY !== null && (this.bestTop === null || topY < this.bestTop)) {
+    // 記録は「塔全体が落ち着いているとき」だけ更新する。
+    // 落下の途中で一瞬つり合った高さを数えると、実態より高く出てしまう。
+    if (topY !== null && this.isSettled() && (this.bestTop === null || topY < this.bestTop)) {
       this.bestTop = topY;
       this.updateBestMarker();
-      this.updateRemainingText();
+      this.updateCountText();
     }
-    const reached = topY !== null && topY <= GOAL_Y;
 
-    if (reached) {
+    if (topY !== null && topY <= GOAL_Y) {
       this.goalReachedAt ??= performance.now();
-      if (performance.now() - this.goalReachedAt >= HOLD_MS) {
-        this.succeed();
-      }
+      if (performance.now() - this.goalReachedAt >= HOLD_MS) this.succeed();
       return;
     }
-
     this.goalReachedAt = null;
 
-    // ブロックを使い切ったら、届かなくても「どこまでいけたか」を見せて終わる。
-    // 失敗で突き放さず、もういちどやりたくなるようにする。
-    if (this.remaining <= 0 && this.isSettled()) {
+    if (this.remaining <= 0 && !this.busy && !this.panel.isCountingDown && this.isSettled()) {
       this.showResult();
     }
   }
 
+  private updateBestMarker(): void {
+    this.bestMarker.clear();
+    if (this.bestTop === null || this.bestTop < ARENA_TOP) return;
+    this.bestMarker.lineStyle(3, COLORS.primary, 0.8);
+    this.bestMarker.beginPath();
+    this.bestMarker.moveTo(0, this.bestTop);
+    this.bestMarker.lineTo(GAME_WIDTH, this.bestTop);
+    this.bestMarker.strokePath();
+  }
+
   /**
    * 積み上がって落ち着いたブロックだけの最上端。
-   *
-   * 落下中のブロックは画面上部を通過するので、それを数えてしまうと
-   * 落とした瞬間にクリア扱いになってしまう。
+   * 落下中のものを数えると、落とした瞬間にクリア扱いになってしまう。
    */
   private highestSettledPoint(): number | null {
     let top: number | null = null;
-    for (const block of this.droppedBodies) {
+    for (const block of this.blocks) {
       if (!this.isBlockSettled(block)) continue;
       const bounds = block.getBounds();
       if (top === null || bounds.top < top) top = bounds.top;
@@ -341,9 +384,8 @@ export class TowerScene extends Phaser.Scene {
     return Math.abs(body.velocity.x) < 0.4 && Math.abs(body.velocity.y) < 0.4;
   }
 
-  /** すべてのブロックがほぼ止まっているか。 */
   private isSettled(): boolean {
-    return this.droppedBodies.every((block) => this.isBlockSettled(block));
+    return this.blocks.every((block) => this.isBlockSettled(block));
   }
 
   private succeed(): void {
@@ -352,7 +394,6 @@ export class TowerScene extends Phaser.Scene {
     this.showBanner('クリア！\nゴールまで つめたね！', COLORS.primary);
   }
 
-  /** ブロックを使い切ったときの結果表示。 */
   private showResult(): void {
     this.finished = true;
     const percent = this.progressPercent();
@@ -363,43 +404,37 @@ export class TowerScene extends Phaser.Scene {
     );
   }
 
-  private showFailure(message: string): void {
-    this.finished = true;
-    playFanfare(false);
-    this.showBanner(message, COLORS.wall);
-  }
-
   private showBanner(message: string, color: number): void {
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, 260, color, 0.92);
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, 300, color, 0.94);
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, message, titleStyle(48))
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, message, titleStyle(40))
       .setOrigin(0.5)
       .setColor('#ffffff');
 
     createButton(
       this,
-      GAME_WIDTH / 2 - 170,
-      GAME_HEIGHT / 2 + 70,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2 + 40,
       'もういちど',
       () => {
         playTap();
-        this.scene.start('TowerIntro');
+        this.scene.restart();
       },
-      { width: 280, height: 72, fontSize: 30 },
+      { width: 300, height: 70, fontSize: 30 },
     );
 
     createButton(
       this,
-      GAME_WIDTH / 2 + 170,
-      GAME_HEIGHT / 2 + 70,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT / 2 + 125,
       'タイトルへ',
       () => {
         playTap();
         this.scene.start('Title');
       },
       {
-        width: 280,
-        height: 72,
+        width: 300,
+        height: 70,
         fontSize: 30,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,

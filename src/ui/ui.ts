@@ -2,8 +2,10 @@
 
 import Phaser from 'phaser';
 
-export const GAME_WIDTH = 1280;
-export const GAME_HEIGHT = 720;
+// 上から下へ落ちるゲームがあるため、縦長を基準にする。
+// 横向きでも FIT スケールで遊べる。
+export const GAME_WIDTH = 720;
+export const GAME_HEIGHT = 1280;
 
 export const COLORS = {
   bg: 0xfff3e0,

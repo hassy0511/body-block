@@ -17,8 +17,8 @@ import {
   GAME_HEIGHT,
 } from '../ui/ui';
 
-const BOARD_WIDTH = 640;
-const BOARD_HEIGHT = 360;
+const BOARD_WIDTH = 660;
+const BOARD_HEIGHT = 371;
 
 export class JudgeScene extends Phaser.Scene {
   constructor() {
@@ -39,7 +39,7 @@ export class JudgeScene extends Phaser.Scene {
     session.recordResult(judge);
 
     const boardX = GAME_WIDTH / 2;
-    const boardY = 250;
+    const boardY = 380;
 
     this.add.rectangle(boardX, boardY, BOARD_WIDTH, BOARD_HEIGHT, COLORS.wall);
     this.add.image(boardX, boardY, this.buildComparisonTexture(judge, theme.mask)).setOrigin(0.5);
@@ -47,15 +47,15 @@ export class JudgeScene extends Phaser.Scene {
     this.add.text(GAME_WIDTH / 2, 40, `${theme.name}`, bodyStyle(30)).setOrigin(0.5);
 
     // 凡例
-    this.addLegend(GAME_WIDTH / 2, boardY + BOARD_HEIGHT / 2 + 34);
+    this.addLegend(GAME_WIDTH / 2, boardY + BOARD_HEIGHT / 2 + 44);
 
     // スコアは 0 から回して発表する
     const scoreText = this.add
-      .text(GAME_WIDTH / 2, boardY + BOARD_HEIGHT / 2 + 100, 'ハマりど 0', titleStyle(56))
+      .text(GAME_WIDTH / 2, boardY + BOARD_HEIGHT / 2 + 130, 'ハマりど 0', titleStyle(50))
       .setOrigin(0.5);
 
     const rankText = this.add
-      .text(GAME_WIDTH / 2, boardY + BOARD_HEIGHT / 2 + 165, '', titleStyle(44))
+      .text(GAME_WIDTH / 2, boardY + BOARD_HEIGHT / 2 + 210, '', titleStyle(40))
       .setOrigin(0.5)
       .setAlpha(0);
 
@@ -83,7 +83,7 @@ export class JudgeScene extends Phaser.Scene {
     createButton(
       this,
       GAME_WIDTH / 2,
-      GAME_HEIGHT - 46,
+      GAME_HEIGHT - 90,
       isLast ? 'けっかを みる' : 'つぎの おだいへ',
       () => {
         playTap();
@@ -94,7 +94,7 @@ export class JudgeScene extends Phaser.Scene {
           this.scene.start('ThemeIntro');
         }
       },
-      { width: 340, height: 74, fontSize: 32 },
+      { width: 400, height: 80, fontSize: 30 },
     );
 
     this.add
@@ -174,7 +174,7 @@ export class JudgeScene extends Phaser.Scene {
     ];
 
     items.forEach((item, index) => {
-      const x = centerX - 200 + index * 200;
+      const x = centerX - 230 + index * 200;
       this.add.rectangle(x - 20, y, 22, 22, item.color).setOrigin(0.5);
       this.add.text(x + 4, y, item.label, bodyStyle(22)).setOrigin(0, 0.5);
     });

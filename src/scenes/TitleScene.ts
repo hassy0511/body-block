@@ -19,7 +19,7 @@ export class TitleScene extends Phaser.Scene {
     addBackground(this);
 
     this.add
-      .text(GAME_WIDTH / 2, 200, 'からだブロック凹凸\nうつしてポン！', titleStyle(64))
+      .text(GAME_WIDTH / 2, 240, 'からだブロック凹凸\nうつしてポン！', titleStyle(48))
       .setOrigin(0.5);
 
     this.add
@@ -33,14 +33,14 @@ export class TitleScene extends Phaser.Scene {
       this.scene.start(scene);
     };
 
-    createButton(this, GAME_WIDTH / 2 - 230, 450, 'ポーズでハマる！', () => start('PlayerSelect'), {
-      width: 400,
+    createButton(this, GAME_WIDTH / 2, 530, 'ポーズでハマる！', () => start('PlayerSelect'), {
+      width: 460,
       height: 110,
       fontSize: 34,
     });
 
-    createButton(this, GAME_WIDTH / 2 + 230, 450, 'たいそうタワー', () => start('TowerIntro'), {
-      width: 400,
+    createButton(this, GAME_WIDTH / 2, 680, 'たいそうタワー', () => start('TowerIntro'), {
+      width: 460,
       height: 110,
       fontSize: 34,
       color: COLORS.accent,
@@ -50,8 +50,8 @@ export class TitleScene extends Phaser.Scene {
     this.add
       .text(
         GAME_WIDTH / 2,
-        GAME_HEIGHT - 60,
-        'カメラを つかいます。しゃしんは このはしから そとに でません。',
+        GAME_HEIGHT - 70,
+        'カメラを つかいます。\nしゃしんは このはしから そとに でません。',
         bodyStyle(22),
       )
       .setOrigin(0.5);

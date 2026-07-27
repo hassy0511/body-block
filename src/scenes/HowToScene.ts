@@ -27,17 +27,20 @@ export class HowToScene extends Phaser.Scene {
   create(): void {
     addBackground(this);
 
-    this.add.text(GAME_WIDTH / 2, 110, 'あそびかた', titleStyle(52)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 150, 'あそびかた', titleStyle(44)).setOrigin(0.5);
 
     STEPS.forEach((step, index) => {
-      this.add.text(GAME_WIDTH / 2, 230 + index * 70, step, bodyStyle(32)).setOrigin(0.5);
+      this.add
+        .text(GAME_WIDTH / 2, 320 + index * 110, step, bodyStyle(26))
+        .setOrigin(0.5)
+        .setWordWrapWidth(GAME_WIDTH - 60);
     });
 
     this.add
-      .text(GAME_WIDTH / 2, 540, 'ぜんぶで 3かい ちょうせん するよ', bodyStyle(26))
+      .text(GAME_WIDTH / 2, 820, 'ぜんぶで 3かい ちょうせん するよ', bodyStyle(26))
       .setOrigin(0.5);
 
-    createButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 110, 'はじめる', () => {
+    createButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 160, 'はじめる', () => {
       playTap();
       localStorage.setItem(HOW_TO_SEEN_KEY, '1');
       this.scene.start('ThemeIntro');

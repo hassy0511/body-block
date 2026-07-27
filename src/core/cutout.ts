@@ -122,6 +122,36 @@ export function simplifyPath(points: Point[], tolerance: number): Point[] {
   return [...left.slice(0, -1), ...right];
 }
 
+/**
+ * 多角形の重心(面積重心)。
+ *
+ * Matter は与えた頂点列の重心を剛体の原点にするため、
+ * スプライト側の原点も同じ点に合わせないと絵と当たり判定がずれる。
+ */
+export function polygonCentroid(points: Point[]): Point {
+  let areaSum = 0;
+  let cx = 0;
+  let cy = 0;
+
+  for (let i = 0; i < points.length; i += 1) {
+    const current = points[i]!;
+    const next = points[(i + 1) % points.length]!;
+    const cross = current.x * next.y - next.x * current.y;
+    areaSum += cross;
+    cx += (current.x + next.x) * cross;
+    cy += (current.y + next.y) * cross;
+  }
+
+  if (Math.abs(areaSum) < 1e-6) {
+    // つぶれた形は単純平均で代用する
+    const sum = points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
+    return { x: sum.x / points.length, y: sum.y / points.length };
+  }
+
+  const area = areaSum * 0.5;
+  return { x: cx / (6 * area), y: cy / (6 * area) };
+}
+
 export interface CutoutSprite {
   canvas: HTMLCanvasElement;
   width: number;
@@ -133,6 +163,8 @@ export interface CutoutPiece {
   sprite: CutoutSprite;
   /** スプライト座標系での輪郭(剛体化に使う)。 */
   contour: Point[];
+  /** 輪郭の重心(スプライト座標系)。剛体の原点になるので絵の原点もここに合わせる。 */
+  contourCentroid: Point;
   /** 元マスクでの面積(画素数)。 */
   area: number;
   /** 元マスクでの重心X。左にいた人 = P1 の割り当てに使う(CLAUDE.md §2.2)。 */
@@ -162,7 +194,8 @@ export function buildCutoutPiece(
   labels: Int32Array,
   options: BuildCutoutOptions,
 ): CutoutPiece | null {
-  const { source, sourceWidth, sourceHeight, outlineWidth = 6, simplifyTolerance = 1.5 } = options;
+  // 輪郭が細かすぎると凸分割の断片が増えて挙動が不安定になるので、既定は強めに間引く
+  const { source, sourceWidth, sourceHeight, outlineWidth = 6, simplifyTolerance = 3 } = options;
 
   // マスク座標 → 元画像座標の倍率
   const scaleX = sourceWidth / mask.width;
@@ -266,6 +299,7 @@ export function buildCutoutPiece(
   return {
     sprite: { canvas, width: spriteWidth, height: spriteHeight },
     contour: simplified,
+    contourCentroid: polygonCentroid(simplified),
     area: blob.pixelCount,
     centroidX: blob.centroidX,
   };

@@ -19,7 +19,7 @@ export class BootScene extends Phaser.Scene {
         GAME_WIDTH / 2,
         GAME_HEIGHT / 2 - 80,
         'からだブロック凹凸\nうつしてポン！',
-        titleStyle(60),
+        titleStyle(46),
       )
       .setOrigin(0.5);
 
