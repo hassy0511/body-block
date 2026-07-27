@@ -170,13 +170,40 @@ export class TowerScene extends Phaser.Scene {
       GAME_HEIGHT - 62,
       'スタート！',
       () => this.beginShot(),
-      { width: 300, height: 74, fontSize: 32 },
+      { width: 250, height: 74, fontSize: 30 },
     );
     this.startLabel = this.startButton.getData('label') as Phaser.GameObjects.Text;
 
+    // 内カメラだと自分の姿を見ながら立ち位置を決められ、
+    // 外カメラだと離れて全身を撮りやすい。どちらも使うので切り替えを残す。
     createButton(
       this,
-      GAME_WIDTH - 88,
+      118,
+      GAME_HEIGHT - 62,
+      'カメラきりかえ',
+      () => {
+        playTap();
+        // カウントダウン中に切り替えると、写る向きと落ちる位置がずれる
+        if (this.panel.isCountingDown) {
+          this.statusText.setText('さつえいちゅうは きりかえられないよ');
+          return;
+        }
+        void this.panel.switchFacing().catch(() => {
+          this.statusText.setText('カメラを きりかえられませんでした');
+        });
+      },
+      {
+        width: 212,
+        height: 62,
+        fontSize: 22,
+        color: COLORS.accent,
+        pressedColor: COLORS.accentDark,
+      },
+    );
+
+    createButton(
+      this,
+      GAME_WIDTH - 86,
       GAME_HEIGHT - 62,
       'やめる',
       () => {
@@ -184,7 +211,7 @@ export class TowerScene extends Phaser.Scene {
         this.scene.start('Title');
       },
       {
-        width: 150,
+        width: 142,
         height: 62,
         fontSize: 24,
         color: COLORS.accent,
@@ -240,7 +267,11 @@ export class TowerScene extends Phaser.Scene {
         sourceHeight: image.height,
       });
       if (!piece) continue;
-      if (this.dropPiece(piece)) dropped += 1;
+
+      // 立っていた場所から落とす。どこに立つかがこのゲームの選択になるので、
+      // カメラに写っていた横位置をそのまま画面上の落下位置に対応させる。
+      const dropX = CAM_X + (blob.centroidX / processed.mask.width) * CAM_WIDTH;
+      if (this.dropPiece(piece, dropX)) dropped += 1;
     }
 
     if (dropped === 0) {
@@ -261,8 +292,8 @@ export class TowerScene extends Phaser.Scene {
     }
   }
 
-  /** 切り抜きを剛体にして落とす。 */
-  private dropPiece(piece: CutoutPiece): boolean {
+  /** 切り抜きを、写っていた横位置から落とす。 */
+  private dropPiece(piece: CutoutPiece, dropX: number): boolean {
     const key = `tower-piece-${this.textureKeys.length}`;
     if (this.textures.exists(key)) this.textures.remove(key);
     this.textures.addCanvas(key, piece.sprite.canvas);
@@ -281,8 +312,10 @@ export class TowerScene extends Phaser.Scene {
       y: point.y - centroid.y,
     }));
 
-    // 落下位置は舞台の中央付近。少しだけ散らして毎回同じ積み方にならないようにする
-    const x = GAME_WIDTH / 2 + Phaser.Math.Between(-60, 60);
+    // 写っていた横位置のまま真下へ落とす。
+    // ブロックの幅ぶんは画面内に収まるよう端で丸める。
+    const halfWidth = (piece.sprite.width * scale) / 2;
+    const x = Phaser.Math.Clamp(dropX, halfWidth, GAME_WIDTH - halfWidth);
     const y = ARENA_TOP - BLOCK_HEIGHT * 0.6;
 
     // 先に置いたものほど重く、摩擦も強くする。
@@ -314,6 +347,7 @@ export class TowerScene extends Phaser.Scene {
     // 剛体の原点(輪郭の重心)に合わせて絵をずらす
     block.setOrigin(centroid.x / piece.sprite.width, centroid.y / piece.sprite.height);
     block.setAngle(Phaser.Math.Between(-5, 5));
+    block.setData('hasMoved', false);
 
     this.blocks.push(block);
     playTap();
@@ -381,7 +415,17 @@ export class TowerScene extends Phaser.Scene {
   private isBlockSettled(block: Phaser.Physics.Matter.Image): boolean {
     const body = block.body as MatterJS.BodyType | null;
     if (!body) return false;
-    return Math.abs(body.velocity.x) < 0.4 && Math.abs(body.velocity.y) < 0.4;
+
+    const moving = Math.abs(body.velocity.x) >= 0.4 || Math.abs(body.velocity.y) >= 0.4;
+    if (moving) {
+      block.setData('hasMoved', true);
+      return false;
+    }
+
+    // 作られた直後のブロックはまだ一度も物理が回っておらず速度 0 なので、
+    // そのままだと「落ちる前の高さ」で積み上がったことになってしまう。
+    // 一度でも動いたものだけを、積み上がったブロックとして数える。
+    return block.getData('hasMoved') === true;
   }
 
   private isSettled(): boolean {

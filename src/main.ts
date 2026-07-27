@@ -15,8 +15,8 @@ import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './ui/ui';
 // 実機では開発者ツールを開けないことが多いので、例外を画面に出せるようにしておく
 installErrorOverlay();
 
-// 家庭でタブレットを立てて遊ぶ横向きを基準にする(CLAUDE.md §6)。
-// 縦向きでも遊べるよう、画面に合わせて縮小表示する。
+// 上から下へ落ちるゲームがあるため縦長を基準にする(CLAUDE.md §6)。
+// 横向きでも遊べるよう、画面に合わせて縮小表示する。
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'app',
