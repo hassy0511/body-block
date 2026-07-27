@@ -15,20 +15,23 @@ const WASM_BASE_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TA
 export type SegmenterModelId = 'selfie' | 'multiclass';
 
 const MODEL_ASSET_URLS: Record<SegmenterModelId, string> = {
-  // 近距離・単純背景向け。カテゴリは背景(0) / 人物(1) の2値。
+  // 近距離・単純背景向けの2値モデル。
   selfie:
     'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite',
-  // 背景(0) / 髪(1) / 肌(2) / 顔(3) / 服(4) / その他(5) の6カテゴリ。
+  // 背景 / 髪 / 肌 / 顔 / 服 / その他 の6カテゴリ。
   multiclass:
     'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
 };
 
-export type SegmenterDelegate = 'GPU' | 'CPU';
+// カテゴリマスクの極性はモデルによって異なる。実機での確認結果に基づく。
+//   selfie     … 人物 = 0 / 背景 = 非0
+//   multiclass … 背景 = 0 / 人物 = 1〜5(髪・肌・顔・服・その他)
+const PERSON_IS_ZERO: Record<SegmenterModelId, boolean> = {
+  selfie: true,
+  multiclass: false,
+};
 
-/** カテゴリ値が「背景以外(=人物)」かどうか。両モデルとも 0 = 背景で共通。 */
-export function isPersonCategory(categoryValue: number): boolean {
-  return categoryValue !== 0;
-}
+export type SegmenterDelegate = 'GPU' | 'CPU';
 
 export class PersonSegmenter {
   private segmenter: ImageSegmenter | null = null;
@@ -41,6 +44,14 @@ export class PersonSegmenter {
 
   get currentDelegate(): SegmenterDelegate | null {
     return this.delegate;
+  }
+
+  /**
+   * カテゴリ値が人物かどうか。極性はモデルごとに異なるため現在のモデルを見て判定する。
+   */
+  isPerson(categoryValue: number): boolean {
+    if (!this.modelId) return false;
+    return PERSON_IS_ZERO[this.modelId] ? categoryValue === 0 : categoryValue !== 0;
   }
 
   /**
