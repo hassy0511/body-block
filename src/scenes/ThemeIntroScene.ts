@@ -13,6 +13,7 @@ import {
 import { playTap } from '../core/sound';
 import { session, THEMES_PER_GAME } from '../game/session';
 import { drawThemeSilhouette } from '../game/themeDraw';
+import { DEFAULT_TIME_LIMIT_SEC } from './CaptureScene';
 
 const AUTO_ADVANCE_MS = 4000;
 
@@ -74,6 +75,13 @@ export class ThemeIntroScene extends Phaser.Scene {
 
     const goToCapture = (): void => {
       timer.remove();
+      session.captureRequest = {
+        theme,
+        expectedBlobs: theme.expectedBlobs,
+        nextScene: 'Judge',
+        headline: `${theme.name} の かたちに なってね`,
+        timeLimitSec: DEFAULT_TIME_LIMIT_SEC,
+      };
       this.scene.start('Capture');
     };
 

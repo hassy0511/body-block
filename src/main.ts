@@ -7,6 +7,8 @@ import { ThemeIntroScene } from './scenes/ThemeIntroScene';
 import { CaptureScene } from './scenes/CaptureScene';
 import { JudgeScene } from './scenes/JudgeScene';
 import { ResultScene } from './scenes/ResultScene';
+import { TowerIntroScene } from './scenes/TowerIntroScene';
+import { TowerScene } from './scenes/TowerScene';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './ui/ui';
 
 // 家庭でタブレットを立てて遊ぶ横向きを基準にする(CLAUDE.md §6)。
@@ -21,6 +23,14 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
+  physics: {
+    default: 'matter',
+    matter: {
+      gravity: { x: 0, y: 1.1 },
+      // 形が合っているかを確認したいときは true にする
+      debug: false,
+    },
+  },
   scene: [
     BootScene,
     TitleScene,
@@ -30,6 +40,8 @@ const game = new Phaser.Game({
     CaptureScene,
     JudgeScene,
     ResultScene,
+    TowerIntroScene,
+    TowerScene,
   ],
 });
 

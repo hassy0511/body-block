@@ -3,6 +3,35 @@
 import type { LoadedTheme } from '../themes/themes';
 import type { JudgeResult } from '../core/score';
 import type { PersonSegmenter } from '../core/segmenter';
+import type { BinaryMask } from '../core/mask';
+
+/**
+ * 撮影画面へ渡す依頼。撮影画面はモードを知らずに済むようにする。
+ */
+export interface CaptureRequest {
+  /** 合わせるお題。null なら自由なポーズ(モード2 など)。 */
+  theme: LoadedTheme | null;
+  /** 期待するかたまりの数。合わなければ撮り直しを促す。 */
+  expectedBlobs: number;
+  /** 撮影後に進むシーン。 */
+  nextScene: string;
+  /** 画面上部に出す案内。 */
+  headline: string;
+  /** 制限時間(秒)。 */
+  timeLimitSec: number;
+}
+
+/** 撮影結果。切り抜きに必要なものを一式渡す。 */
+export interface CaptureResult {
+  /** ノイズ処理・かたまり判定を通したマスク。 */
+  mask: BinaryMask;
+  /** 各画素の所属ラベル。 */
+  labels: Int32Array;
+  /** 採用されたかたまり(重心Xの昇順)。 */
+  blobs: import('../core/mask').MaskBlob[];
+  /** 撮影した静止画。スプライトの絵柄に使う。 */
+  image: HTMLCanvasElement;
+}
 
 /** 1ゲームで挑戦するお題の数。 */
 export const THEMES_PER_GAME = 3;
@@ -18,8 +47,15 @@ export class GameSession {
   results: ThemeResult[] = [];
   currentIndex = 0;
 
+  /** 撮影画面への依頼。 */
+  captureRequest: CaptureRequest | null = null;
+  /** 直近の撮影結果。 */
+  captured: CaptureResult | null = null;
+
   /** 直近の撮影で得たプレイヤーのマスク。判定シーンへ渡す。 */
-  capturedMask: import('../core/mask').BinaryMask | null = null;
+  get capturedMask(): BinaryMask | null {
+    return this.captured?.mask ?? null;
+  }
 
   /** モデルの読み込みは重いので、ゲーム全体で1つを使い回す。 */
   segmenter: PersonSegmenter | null = null;
@@ -47,7 +83,7 @@ export class GameSession {
     this.themes = themes;
     this.results = [];
     this.currentIndex = 0;
-    this.capturedMask = null;
+    this.captured = null;
   }
 
   recordResult(judge: JudgeResult): void {
@@ -58,7 +94,7 @@ export class GameSession {
 
   advance(): void {
     this.currentIndex += 1;
-    this.capturedMask = null;
+    this.captured = null;
   }
 }
 

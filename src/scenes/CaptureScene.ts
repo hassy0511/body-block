@@ -9,7 +9,7 @@ import Phaser from 'phaser';
 import { CameraController, createOffscreenVideoElement } from '../core/camera';
 import { processMask } from '../core/mask';
 import { playCountdownBeep, playShutter, playTap } from '../core/sound';
-import { session } from '../game/session';
+import { session, type CaptureRequest } from '../game/session';
 import { drawThemeSilhouette } from '../game/themeDraw';
 import { addBackground, createButton, bodyStyle, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../ui/ui';
 
@@ -22,8 +22,8 @@ const VIEW_Y = 52;
 /** マスク推論の頻度(SPEC_MODE1.md §5: 低解像度・低頻度でよい)。 */
 const SEGMENT_INTERVAL_MS = 125;
 
-/** ポーズを作るための制限時間(秒)。端末から離れて構えるので短すぎないようにする。 */
-const TIME_LIMIT_SEC = 10;
+/** ポーズを作るための既定の制限時間(秒)。端末から離れて構えるので短すぎないようにする。 */
+export const DEFAULT_TIME_LIMIT_SEC = 10;
 
 interface CropRect {
   sx: number;
@@ -78,6 +78,7 @@ export class CaptureScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
   private countdownText!: Phaser.GameObjects.Text;
   private startButtonLabel: Phaser.GameObjects.Text | null = null;
+  private request!: CaptureRequest;
   /** 制限時間の終了時刻(performance.now() 基準)。挑戦中でなければ null。 */
   private deadlineAt: number | null = null;
   private lastShownSecond = -1;
@@ -89,11 +90,12 @@ export class CaptureScene extends Phaser.Scene {
   create(): void {
     addBackground(this);
 
-    const theme = session.currentTheme;
-    if (!theme) {
-      this.scene.start('Result');
+    const request = session.captureRequest;
+    if (!request) {
+      this.scene.start('Title');
       return;
     }
+    this.request = request;
 
     this.isCapturing = false;
     this.ready = false;
@@ -104,15 +106,22 @@ export class CaptureScene extends Phaser.Scene {
     this.add.image(VIEW_X, VIEW_Y, 'capture-video').setOrigin(0, 0);
     this.add.image(VIEW_X, VIEW_Y, 'capture-mask').setOrigin(0, 0).setAlpha(0.45);
 
-    // お題の穴を薄く重ねる
-    const silhouette = drawThemeSilhouette(this, theme, VIEW_WIDTH, VIEW_HEIGHT, '#ffffff', 0.35);
-    this.add.image(VIEW_X, VIEW_Y, silhouette).setOrigin(0, 0);
+    // お題がある場合だけ、穴を薄く重ねる
+    if (request.theme) {
+      const silhouette = drawThemeSilhouette(
+        this,
+        request.theme,
+        VIEW_WIDTH,
+        VIEW_HEIGHT,
+        '#ffffff',
+        0.35,
+      );
+      this.add.image(VIEW_X, VIEW_Y, silhouette).setOrigin(0, 0);
+    }
 
     this.drawStandGuides();
 
-    this.add
-      .text(GAME_WIDTH / 2, 28, `${theme.name} の かたちに なってね`, bodyStyle(28))
-      .setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 28, request.headline, bodyStyle(28)).setOrigin(0.5);
 
     this.statusText = this.add
       .text(GAME_WIDTH / 2, VIEW_Y + VIEW_HEIGHT + 28, 'カメラを じゅんびちゅう...', bodyStyle(26))
@@ -229,7 +238,7 @@ export class CaptureScene extends Phaser.Scene {
       await this.camera.start('user');
       this.ready = true;
       this.statusText.setText(
-        `「スタート！」を おしてから ${TIME_LIMIT_SEC}びょう。ぜんしんが うつるように はなれてね`,
+        `「スタート！」を おしてから ${this.request.timeLimitSec}びょう。ぜんしんが うつるように はなれてね`,
       );
     } catch {
       this.statusText.setText('カメラを つかえませんでした。きょかを かくにんしてね');
@@ -338,9 +347,9 @@ export class CaptureScene extends Phaser.Scene {
 
     // Phaser のタイマーはフレーム時間ベースで、推論が重いと実時間より遅れる。
     // 制限時間ゲームなので、経過は実時間(performance.now)で測る。
-    this.deadlineAt = performance.now() + TIME_LIMIT_SEC * 1000;
+    this.deadlineAt = performance.now() + this.request.timeLimitSec * 1000;
     this.lastShownSecond = -1;
-    this.showRemaining(TIME_LIMIT_SEC);
+    this.showRemaining(this.request.timeLimitSec);
   }
 
   /** 残り秒数の表示を更新する。 */
@@ -393,8 +402,7 @@ export class CaptureScene extends Phaser.Scene {
 
   private captureAndJudge(): void {
     const segmenter = session.segmenter;
-    const theme = session.currentTheme;
-    if (!segmenter || !theme) return;
+    if (!segmenter) return;
 
     const sourceWidth = this.videoEl.videoWidth;
     const sourceHeight = this.videoEl.videoHeight;
@@ -441,13 +449,18 @@ export class CaptureScene extends Phaser.Scene {
       result.close();
 
       // 検出した塊の数がお題の想定と合わなければ撮り直し(SPEC_MODE1.md §2)
-      if (processed.accepted.length !== theme.expectedBlobs) {
+      if (processed.accepted.length !== this.request.expectedBlobs) {
         this.retry('はなれて たちなおしてね！');
         return;
       }
 
-      session.capturedMask = processed.mask;
-      this.scene.start('Judge');
+      session.captured = {
+        mask: processed.mask,
+        labels: processed.labels,
+        blobs: processed.accepted,
+        image: canvas,
+      };
+      this.scene.start(this.request.nextScene);
     } catch {
       this.retry('うまく きりぬけませんでした。もういちど！');
     }

@@ -4,6 +4,7 @@ import {
   createButton,
   titleStyle,
   bodyStyle,
+  COLORS,
   GAME_WIDTH,
   GAME_HEIGHT,
 } from '../ui/ui';
@@ -21,13 +22,29 @@ export class TitleScene extends Phaser.Scene {
       .text(GAME_WIDTH / 2, 200, 'からだブロック凹凸\nうつしてポン！', titleStyle(64))
       .setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 350, 'ポーズでハマる！', bodyStyle(36)).setOrigin(0.5);
+    this.add
+      .text(GAME_WIDTH / 2, 330, 'あそびたい ゲームを えらんでね', bodyStyle(30))
+      .setOrigin(0.5);
 
-    createButton(this, GAME_WIDTH / 2, 490, 'あそぶ', () => {
+    const start = (scene: string): void => {
       // 最初のタップで音を鳴らせるようにする(iOS の制約)
       unlockAudio();
       playTap();
-      this.scene.start('PlayerSelect');
+      this.scene.start(scene);
+    };
+
+    createButton(this, GAME_WIDTH / 2 - 230, 450, 'ポーズでハマる！', () => start('PlayerSelect'), {
+      width: 400,
+      height: 110,
+      fontSize: 34,
+    });
+
+    createButton(this, GAME_WIDTH / 2 + 230, 450, 'たいそうタワー', () => start('TowerIntro'), {
+      width: 400,
+      height: 110,
+      fontSize: 34,
+      color: COLORS.accent,
+      pressedColor: COLORS.accentDark,
     });
 
     this.add
