@@ -9,7 +9,11 @@ import { JudgeScene } from './scenes/JudgeScene';
 import { ResultScene } from './scenes/ResultScene';
 import { TowerIntroScene } from './scenes/TowerIntroScene';
 import { TowerScene } from './scenes/TowerScene';
+import { installErrorOverlay } from './core/errorOverlay';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './ui/ui';
+
+// 実機では開発者ツールを開けないことが多いので、例外を画面に出せるようにしておく
+installErrorOverlay();
 
 // 家庭でタブレットを立てて遊ぶ横向きを基準にする(CLAUDE.md §6)。
 // 縦向きでも遊べるよう、画面に合わせて縮小表示する。

@@ -70,6 +70,11 @@ export class CaptureScene extends Phaser.Scene {
   private maskTexture!: Phaser.Textures.CanvasTexture;
 
   private lastSegmentAt = 0;
+  /**
+   * 推論に渡すタイムスタンプ。
+   * MediaPipe は単調増加を要求し、一度でも巻き戻すと以降すべて失敗するため、
+   * 実時間を基準にしつつ必ず増えるようにする。
+   */
   private frameTimestamp = 0;
   private isSegmenting = false;
   private isCapturing = false;
@@ -246,6 +251,20 @@ export class CaptureScene extends Phaser.Scene {
   }
 
   update(): void {
+    // Phaser は update の例外をそのまま外へ流すため、
+    // ここで漏らすと次フレームが予約されずゲームが止まったままになる。
+    // 1フレームの失敗で固まらないよう包んでおく。
+    try {
+      this.updateFrame();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.statusText.setText(`エラーが おきました\n(${detail})`);
+      this.deadlineAt = null;
+      this.isCapturing = false;
+    }
+  }
+
+  private updateFrame(): void {
     // カメラの状態にかかわらず、始まった制限時間は必ず進める
     this.tickCountdown();
 
@@ -258,6 +277,13 @@ export class CaptureScene extends Phaser.Scene {
       this.lastSegmentAt = now;
       this.updateMaskOverlay();
     }
+  }
+
+  /** 必ず前回より大きいタイムスタンプを返す。 */
+  private nextTimestamp(): number {
+    const now = Math.round(performance.now());
+    this.frameTimestamp = Math.max(now, this.frameTimestamp + 1);
+    return this.frameTimestamp;
   }
 
   /** 映像をテクスチャへ転写する。比率は保ち、インカメラは鏡像にする。 */
@@ -287,10 +313,9 @@ export class CaptureScene extends Phaser.Scene {
 
     this.isSegmenting = true;
     try {
-      this.frameTimestamp += SEGMENT_INTERVAL_MS;
       // 表示中のキャンバス(切り出し・鏡像ずみ)をそのまま推論にかけることで、
       // マスクの位置が必ず映像と一致するようにする
-      const result = segmenter.segment(this.videoTexture.canvas, this.frameTimestamp);
+      const result = segmenter.segment(this.videoTexture.canvas, this.nextTimestamp());
       const mask = result.categoryMask;
       if (!mask) return;
 
@@ -400,9 +425,27 @@ export class CaptureScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * 撮影して判定へ渡す。
+   *
+   * ここは update から呼ばれるので、例外を外へ出すとゲームループごと止まってしまう。
+   * どんな失敗でも必ず撮り直しに戻れるよう、全体を包んで扱う。
+   */
   private captureAndJudge(): void {
+    try {
+      this.captureAndJudgeUnsafe();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.retry(`さつえいに しっぱいしました\n(${detail})`);
+    }
+  }
+
+  private captureAndJudgeUnsafe(): void {
     const segmenter = session.segmenter;
-    if (!segmenter) return;
+    if (!segmenter) {
+      this.retry('じゅんびが できていません。リロードしてね');
+      return;
+    }
 
     const sourceWidth = this.videoEl.videoWidth;
     const sourceHeight = this.videoEl.videoHeight;
@@ -422,7 +465,10 @@ export class CaptureScene extends Phaser.Scene {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      this.retry('えを つくれませんでした。もういちど！');
+      return;
+    }
 
     if (this.camera.facingMode === 'user') {
       ctx.translate(width, 0);
@@ -430,9 +476,8 @@ export class CaptureScene extends Phaser.Scene {
     }
     ctx.drawImage(this.videoEl, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
 
-    try {
-      this.frameTimestamp += SEGMENT_INTERVAL_MS;
-      const result = segmenter.segment(canvas, this.frameTimestamp);
+    {
+      const result = segmenter.segment(canvas, this.nextTimestamp());
       const mask = result.categoryMask;
       if (!mask) {
         this.retry('うまく きりぬけませんでした。もういちど！');
@@ -461,8 +506,6 @@ export class CaptureScene extends Phaser.Scene {
         image: canvas,
       };
       this.scene.start(this.request.nextScene);
-    } catch {
-      this.retry('うまく きりぬけませんでした。もういちど！');
     }
   }
 
