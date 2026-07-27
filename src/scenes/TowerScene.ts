@@ -27,18 +27,29 @@ const TOTAL_SHOTS = 6;
 const SHOT_TIME_LIMIT_SEC = 8;
 
 /**
- * カメラの表示領域(画面上部)。
- * 舞台と同じ幅にしてあるのが重要で、これにより
- * 「カメラの左端に写った人は舞台の左端に落ちる」が成り立つ。
+ * カメラ枠と舞台の幅。カメラと舞台は同じ幅・同じ左右位置に置く。
+ * これにより「カメラの左端に写った人は舞台の左端に落ちる」が成り立つ。
+ *
+ * この幅がブロックの大きさを決めている。
+ * 落ちてくる大きさ = カメラ枠の幅 ÷ 映像の幅 なので、
+ * **ブロックを小さくする方法は枠を細くすることだけ**。
+ * 枠の高さを変えても大きさはほとんど変わらない(写る範囲が変わるだけ)。
+ * 画面いっぱいの 720px では、離れて撮ってもブロックが舞台の半分を占めていた。
  */
-const CAM_X = 0;
-const CAM_Y = 92;
-const CAM_WIDTH = GAME_WIDTH;
-const CAM_HEIGHT = 430;
+const STAGE_WIDTH = 520;
+const STAGE_X = Math.round((GAME_WIDTH - STAGE_WIDTH) / 2);
+const STAGE_RIGHT = STAGE_X + STAGE_WIDTH;
+
+/** カメラの表示領域(画面上部)。 */
+const CAM_X = STAGE_X;
+const CAM_Y = 96;
+const CAM_WIDTH = STAGE_WIDTH;
+/** 16:9 にしておくと、横向きの映像をほとんど切り取らずに写せる。 */
+const CAM_HEIGHT = Math.round((STAGE_WIDTH * 9) / 16);
 
 /** 積み上げの舞台。カメラの下から床まで。 */
 const ARENA_TOP = CAM_Y + CAM_HEIGHT;
-const FLOOR_Y = GAME_HEIGHT - 200;
+const FLOOR_Y = GAME_HEIGHT - 190;
 /**
  * ここまで積めたらクリア。舞台の上端(カメラのすぐ下)を目標にする。
  * 「舞台を埋めきる」が目標なので分かりやすく、
@@ -51,7 +62,7 @@ const GOAL_Y = ARENA_TOP + 40;
  * 端末に近づいて撮ると人が大きく写り、そのままだと舞台に収まらないので
  * ここでだけ頭打ちにする。離れて撮っているぶんには効かない。
  */
-const MAX_BLOCK_HEIGHT = 320;
+const MAX_BLOCK_HEIGHT = 260;
 /** クリア判定に必要な「崩れずに保つ」時間(ミリ秒)。 */
 const HOLD_MS = 1200;
 
@@ -116,43 +127,51 @@ export class TowerScene extends Phaser.Scene {
   }
 
   private buildStage(): void {
-    // 舞台の下地
+    // 舞台の下地。カメラ枠と同じ幅の柱にして、落ちる場所が一目で分かるようにする
+    const stageCenterX = STAGE_X + STAGE_WIDTH / 2;
     this.add.rectangle(
-      GAME_WIDTH / 2,
-      (ARENA_TOP + GAME_HEIGHT) / 2,
-      GAME_WIDTH,
-      GAME_HEIGHT - ARENA_TOP,
+      stageCenterX,
+      (ARENA_TOP + FLOOR_Y + 40) / 2,
+      STAGE_WIDTH,
+      FLOOR_Y + 40 - ARENA_TOP,
       0xfdead0,
     );
 
     // 床
-    this.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 20, GAME_WIDTH, 40, COLORS.wall);
-    this.matter.add.rectangle(GAME_WIDTH / 2, FLOOR_Y + 30, GAME_WIDTH, 60, {
+    this.add.rectangle(stageCenterX, FLOOR_Y + 20, STAGE_WIDTH, 40, COLORS.wall);
+    this.matter.add.rectangle(stageCenterX, FLOOR_Y + 30, STAGE_WIDTH, 60, {
       isStatic: true,
       friction: 1,
       frictionStatic: 1,
     });
 
-    // 左右の壁。ブロックが画面外へ逃げないようにする
-    this.matter.add.rectangle(-30, GAME_HEIGHT / 2, 60, GAME_HEIGHT * 2, {
-      isStatic: true,
-      friction: 0.2,
-    });
-    this.matter.add.rectangle(GAME_WIDTH + 30, GAME_HEIGHT / 2, 60, GAME_HEIGHT * 2, {
-      isStatic: true,
-      friction: 0.2,
-    });
+    // 左右の壁。舞台からブロックが逃げないようにする
+    for (const wallX of [STAGE_X - 30, STAGE_RIGHT + 30]) {
+      this.matter.add.rectangle(wallX, GAME_HEIGHT / 2, 60, GAME_HEIGHT * 2, {
+        isStatic: true,
+        friction: 0.2,
+      });
+      this.add.rectangle(
+        wallX,
+        (ARENA_TOP + FLOOR_Y + 40) / 2,
+        8,
+        FLOOR_Y + 40 - ARENA_TOP,
+        0xe6c9a4,
+      );
+    }
 
     // 目標ライン
     const line = this.add.graphics();
     line.lineStyle(4, COLORS.accent, 0.9);
     line.beginPath();
-    for (let x = 0; x < GAME_WIDTH; x += 22) {
+    for (let x = STAGE_X; x < STAGE_RIGHT; x += 22) {
       line.moveTo(x, GOAL_Y);
-      line.lineTo(x + 12, GOAL_Y);
+      line.lineTo(Math.min(x + 12, STAGE_RIGHT), GOAL_Y);
     }
     line.strokePath();
-    this.add.text(16, GOAL_Y + 6, 'ここまで つみあげよう！', bodyStyle(22)).setColor('#209aa1');
+    this.add
+      .text(STAGE_X, GOAL_Y + 8, 'ここまで つみあげよう！', bodyStyle(20))
+      .setColor('#209aa1');
 
     this.bestMarker = this.add.graphics();
   }
@@ -406,8 +425,8 @@ export class TowerScene extends Phaser.Scene {
     if (this.bestTop === null || this.bestTop < ARENA_TOP) return;
     this.bestMarker.lineStyle(3, COLORS.primary, 0.8);
     this.bestMarker.beginPath();
-    this.bestMarker.moveTo(0, this.bestTop);
-    this.bestMarker.lineTo(GAME_WIDTH, this.bestTop);
+    this.bestMarker.moveTo(STAGE_X, this.bestTop);
+    this.bestMarker.lineTo(STAGE_RIGHT, this.bestTop);
     this.bestMarker.strokePath();
   }
 
