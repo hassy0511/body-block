@@ -16,12 +16,16 @@
         <label>
           モデル
           <select id="model-select">
+            <option value="multiclass" selected>Multiclass Selfie Segmenter</option>
             <option value="selfie">Selfie Segmentation (landscape)</option>
-            <option value="multiclass">Multiclass Selfie Segmenter</option>
           </select>
         </label>
         <button id="switch-camera-btn" type="button" disabled>イン/アウト切替</button>
         <button id="capture-btn" type="button" disabled>静止画キャプチャ</button>
+        <label class="checkbox-label">
+          <input id="denoise" type="checkbox" checked />
+          ノイズ処理・かたまり判定を使う
+        </label>
         <label class="checkbox-label">
           <input id="invert-mask" type="checkbox" />
           マスクを反転（人物/背景が逆のとき）
@@ -32,7 +36,7 @@
         <div class="preview-wrap">
           <video id="preview-video" autoplay playsinline muted></video>
           <canvas id="overlay-canvas"></canvas>
-          <p class="stage-label">プレビュー + マスク重畳</p>
+          <p class="stage-label" id="preview-label">プレビュー + マスク重畳</p>
         </div>
         <div class="result-wrap">
           <canvas id="result-canvas"></canvas>

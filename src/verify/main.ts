@@ -6,6 +6,7 @@
 import './style.css';
 import { CameraController } from '../core/camera';
 import { PersonSegmenter, type SegmenterModelId } from '../core/segmenter';
+import { processMask, type ProcessedMask } from '../core/mask';
 
 const PREVIEW_FPS = 8;
 const PREVIEW_INTERVAL_MS = 1000 / PREVIEW_FPS;
@@ -17,6 +18,8 @@ const modelSelect = document.querySelector<HTMLSelectElement>('#model-select')!;
 const switchCameraBtn = document.querySelector<HTMLButtonElement>('#switch-camera-btn')!;
 const captureBtn = document.querySelector<HTMLButtonElement>('#capture-btn')!;
 const invertCheckbox = document.querySelector<HTMLInputElement>('#invert-mask')!;
+const denoiseCheckbox = document.querySelector<HTMLInputElement>('#denoise')!;
+const previewLabel = document.querySelector<HTMLParagraphElement>('#preview-label')!;
 const statusLog = document.querySelector<HTMLPreElement>('#status-log')!;
 
 const camera = new CameraController(videoEl);
@@ -48,24 +51,35 @@ function syncOverlayTransform(): void {
   overlayCanvas.style.transform = videoEl.style.transform;
 }
 
-/**
- * カテゴリマスクを走査し、人物ピクセルだけを半透明色で overlay に塗る。
- * 同時に人物ピクセル数を返す(抜け具合の目安として表示する)。
- */
-function drawMaskOverlay(
-  ctx: CanvasRenderingContext2D,
+/** 生のカテゴリマスクにノイズ処理・ラベリングを適用する。 */
+function runMaskPipeline(
   categoryData: Uint8Array,
   maskWidth: number,
   maskHeight: number,
-): number {
-  const image = ctx.createImageData(maskWidth, maskHeight);
-  const pixels = image.data;
-  let personPixels = 0;
+): ProcessedMask {
+  return processMask(categoryData, maskWidth, maskHeight, isPerson, {
+    targetWidth: 256,
+    morphologyIterations: 1,
+    minAreaRatio: 0.005,
+    humanEvidenceCategories: segmenter.humanEvidenceCategories,
+  });
+}
 
-  for (let i = 0; i < categoryData.length; i += 1) {
+/** 二値マスクを半透明色で overlay に塗る。 */
+function drawBinaryOverlay(binary: Uint8Array, width: number, height: number): void {
+  if (overlayCanvas.width !== width || overlayCanvas.height !== height) {
+    overlayCanvas.width = width;
+    overlayCanvas.height = height;
+  }
+  const ctx = overlayCanvas.getContext('2d');
+  if (!ctx) return;
+
+  const image = ctx.createImageData(width, height);
+  const pixels = image.data;
+
+  for (let i = 0; i < binary.length; i += 1) {
     const offset = i * 4;
-    if (isPerson(categoryData[i]!)) {
-      personPixels += 1;
+    if (binary[i] === 1) {
       pixels[offset] = 0;
       pixels[offset + 1] = 200;
       pixels[offset + 2] = 255;
@@ -77,10 +91,17 @@ function drawMaskOverlay(
 
   // putImageData は変換行列を無視するため、ここで反転はできない。
   // 鏡像表示は overlay canvas 側の CSS transform で video と揃えている。
-  ctx.clearRect(0, 0, maskWidth, maskHeight);
+  ctx.clearRect(0, 0, width, height);
   ctx.putImageData(image, 0, 0);
+}
 
-  return personPixels;
+/** ノイズ処理をかけずに、生のカテゴリマスクをそのまま二値化して塗る。 */
+function drawRawOverlay(categoryData: Uint8Array, width: number, height: number): void {
+  const binary = new Uint8Array(categoryData.length);
+  for (let i = 0; i < categoryData.length; i += 1) {
+    binary[i] = isPerson(categoryData[i]!) ? 1 : 0;
+  }
+  drawBinaryOverlay(binary, width, height);
 }
 
 function renderPreviewFrame(): void {
@@ -95,13 +116,13 @@ function renderPreviewFrame(): void {
     if (!mask) return;
 
     const data = mask.getAsUint8Array();
-    if (overlayCanvas.width !== mask.width || overlayCanvas.height !== mask.height) {
-      overlayCanvas.width = mask.width;
-      overlayCanvas.height = mask.height;
-    }
-    const ctx = overlayCanvas.getContext('2d');
-    if (ctx) {
-      drawMaskOverlay(ctx, data, mask.width, mask.height);
+    if (denoiseCheckbox.checked) {
+      const processed = runMaskPipeline(data, mask.width, mask.height);
+      drawBinaryOverlay(processed.mask.data, processed.mask.width, processed.mask.height);
+      previewLabel.textContent = `プレビュー + マスク重畳（かたまり ${processed.accepted.length}個）`;
+    } else {
+      drawRawOverlay(data, mask.width, mask.height);
+      previewLabel.textContent = 'プレビュー + マスク重畳（ノイズ処理なし）';
     }
     result.close();
   } catch (error) {
@@ -164,19 +185,29 @@ function captureAndCutout(): void {
     const cutout = captureCtx.createImageData(width, height);
     let personPixels = 0;
 
+    // ノイズ処理を通す場合は縮小済みマスクを、通さない場合は生マスクを参照する
+    const processed = denoiseCheckbox.checked
+      ? runMaskPipeline(categoryData, mask.width, mask.height)
+      : null;
+    const refData = processed ? processed.mask.data : categoryData;
+    const refWidth = processed ? processed.mask.width : mask.width;
+    const refHeight = processed ? processed.mask.height : mask.height;
+
     // マスク解像度と撮影解像度が異なるため、最近傍でサンプリングする
     for (let y = 0; y < height; y += 1) {
-      const maskY = Math.min(mask.height - 1, Math.floor((y / height) * mask.height));
+      const refY = Math.min(refHeight - 1, Math.floor((y / height) * refHeight));
       for (let x = 0; x < width; x += 1) {
-        const maskX = Math.min(mask.width - 1, Math.floor((x / width) * mask.width));
+        const refX = Math.min(refWidth - 1, Math.floor((x / width) * refWidth));
+        const value = refData[refY * refWidth + refX]!;
+        const keep = processed ? value === 1 : isPerson(value);
+        if (!keep) continue;
+
         const offset = (y * width + x) * 4;
-        if (isPerson(categoryData[maskY * mask.width + maskX]!)) {
-          personPixels += 1;
-          cutout.data[offset] = source.data[offset]!;
-          cutout.data[offset + 1] = source.data[offset + 1]!;
-          cutout.data[offset + 2] = source.data[offset + 2]!;
-          cutout.data[offset + 3] = 255;
-        }
+        personPixels += 1;
+        cutout.data[offset] = source.data[offset]!;
+        cutout.data[offset + 1] = source.data[offset + 1]!;
+        cutout.data[offset + 2] = source.data[offset + 2]!;
+        cutout.data[offset + 3] = 255;
       }
     }
 
@@ -193,6 +224,17 @@ function captureAndCutout(): void {
     const elapsed = Math.round(performance.now() - startedAt);
     const ratio = ((personPixels / (width * height)) * 100).toFixed(1);
     log(`キャプチャ完了: ${width}x${height} / 人物ピクセル ${ratio}% / 処理時間 ${elapsed}ms`);
+
+    if (processed) {
+      const rejected =
+        processed.rejectedByEvidence.length > 0
+          ? ` / 服だけの塊として除外 ${processed.rejectedByEvidence.length}件`
+          : '';
+      log(
+        `検出した塊: ${processed.accepted.length}個` +
+          ` (小さすぎて除外 ${processed.rejectedBySize.length}件${rejected})`,
+      );
+    }
   } catch (error) {
     log(`キャプチャに失敗: ${errorMessage(error)}`);
   }
@@ -208,7 +250,11 @@ async function loadModel(modelId: SegmenterModelId): Promise<void> {
   try {
     await segmenter.loadModel(modelId);
     const elapsed = Math.round(performance.now() - startedAt);
+    const evidence = segmenter.humanEvidenceCategories
+      ? '服だけの塊を除外できます'
+      : 'カテゴリを区別できないため服だけの塊は除外できません';
     log(`モデル読み込み完了: ${modelId} / delegate=${segmenter.currentDelegate} / ${elapsed}ms`);
+    log(`このモデルは${evidence}。`);
     captureBtn.disabled = false;
     startPreviewLoop();
   } catch (error) {

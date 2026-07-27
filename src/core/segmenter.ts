@@ -31,6 +31,14 @@ const PERSON_IS_ZERO: Record<SegmenterModelId, boolean> = {
   multiclass: false,
 };
 
+// 「そこに人がいる」根拠になるカテゴリ(髪・肌・顔)。
+// 服だけの塊(ハンガーに掛かった上着など)を人物と誤検出しないための判定に使う。
+// 2値モデルはカテゴリを区別できないため null。
+const HUMAN_EVIDENCE_CATEGORIES: Record<SegmenterModelId, readonly number[] | null> = {
+  selfie: null,
+  multiclass: [1, 2, 3],
+};
+
 export type SegmenterDelegate = 'GPU' | 'CPU';
 
 export class PersonSegmenter {
@@ -52,6 +60,14 @@ export class PersonSegmenter {
   isPerson(categoryValue: number): boolean {
     if (!this.modelId) return false;
     return PERSON_IS_ZERO[this.modelId] ? categoryValue === 0 : categoryValue !== 0;
+  }
+
+  /**
+   * 現在のモデルで「人がいる根拠」として使えるカテゴリ値。
+   * カテゴリを区別できないモデルでは null を返す。
+   */
+  get humanEvidenceCategories(): readonly number[] | null {
+    return this.modelId ? HUMAN_EVIDENCE_CATEGORIES[this.modelId] : null;
   }
 
   /**
