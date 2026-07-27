@@ -32,7 +32,7 @@ header h1 {
 
 #theme-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
   gap: 16px;
 }
 
@@ -43,10 +43,24 @@ header h1 {
   overflow: hidden;
 }
 
-.theme-card canvas {
+.theme-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: #0c0d10;
+}
+
+.theme-row img,
+.theme-row canvas {
   display: block;
   width: 100%;
   height: auto;
+  /* 縮小後のマスクはドットのまま見せたいので補間しない */
+  image-rendering: pixelated;
+}
+
+.warn {
+  color: #ffb454;
 }
 
 .theme-card figcaption {
