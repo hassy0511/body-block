@@ -1,0 +1,118 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Hiragino Sans',
+    sans-serif;
+  background: #14161a;
+  color: #f0f0f0;
+}
+
+#verify-app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+header h1 {
+  font-size: 1.25rem;
+  margin: 0 0 4px;
+}
+
+.subtitle {
+  margin: 0 0 16px;
+  color: #9aa0a8;
+  font-size: 0.85rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+button,
+select {
+  font-size: 0.95rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #3a3f47;
+  background: #21252c;
+  color: inherit;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+.stage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.preview-wrap,
+.result-wrap {
+  position: relative;
+  width: min(100%, 480px);
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-wrap video,
+.preview-wrap canvas#overlay-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#result-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.stage-label {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  margin: 0;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 4px;
+}
+
+#status-log {
+  margin-top: 16px;
+  padding: 12px;
+  background: #0c0d10;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  max-height: 260px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}

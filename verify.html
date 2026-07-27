@@ -6,7 +6,38 @@
     <title>技術検証ページ - からだブロック凹凸 うつしてポン！</title>
   </head>
   <body>
-    <div id="verify-app"></div>
+    <div id="verify-app">
+      <header>
+        <h1>技術検証ページ</h1>
+        <p class="subtitle">カメラ + 人物セグメンテーションの動作確認(開発者向け)</p>
+      </header>
+
+      <div class="controls">
+        <label>
+          モデル
+          <select id="model-select">
+            <option value="selfie">Selfie Segmentation (landscape)</option>
+            <option value="multiclass">Multiclass Selfie Segmenter</option>
+          </select>
+        </label>
+        <button id="switch-camera-btn" type="button" disabled>イン/アウト切替</button>
+        <button id="capture-btn" type="button" disabled>静止画キャプチャ</button>
+      </div>
+
+      <div class="stage">
+        <div class="preview-wrap">
+          <video id="preview-video" autoplay playsinline muted></video>
+          <canvas id="overlay-canvas"></canvas>
+          <p class="stage-label">プレビュー + マスク重畳</p>
+        </div>
+        <div class="result-wrap">
+          <canvas id="result-canvas"></canvas>
+          <p class="stage-label">キャプチャ結果(切り抜き)</p>
+        </div>
+      </div>
+
+      <pre id="status-log" aria-live="polite"></pre>
+    </div>
     <script type="module" src="/src/verify/main.ts"></script>
   </body>
 </html>
