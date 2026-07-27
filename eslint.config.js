@@ -5,7 +5,7 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**'],
+    ignores: ['dist/**', 'node_modules/**', 'public/**', 'smoke.mjs'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

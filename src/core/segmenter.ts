@@ -10,17 +10,25 @@ import {
 } from '@mediapipe/tasks-vision';
 
 const TASKS_VISION_VERSION = '0.10.35';
-const WASM_BASE_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VISION_VERSION}/wasm`;
+
+// 取得元は環境変数で差し替えられる。既定は公式 CDN。
+// 自己ホストしたい場合や、外部通信が制限された環境で動作確認したい場合に使う。
+const WASM_BASE_URL =
+  import.meta.env.VITE_MEDIAPIPE_WASM_BASE ??
+  `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VISION_VERSION}/wasm`;
+
+const MODEL_BASE_URL =
+  import.meta.env.VITE_MEDIAPIPE_MODEL_BASE ?? 'https://storage.googleapis.com/mediapipe-models';
 
 export type SegmenterModelId = 'selfie' | 'multiclass';
 
-const MODEL_ASSET_URLS: Record<SegmenterModelId, string> = {
+const MODEL_ASSET_PATHS: Record<SegmenterModelId, string> = {
   // 近距離・単純背景向けの2値モデル。
   selfie:
-    'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite',
+    '/image_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite',
   // 背景 / 髪 / 肌 / 顔 / 服 / その他 の6カテゴリ。
   multiclass:
-    'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
+    '/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
 };
 
 // カテゴリマスクの極性はモデルによって異なる。実機での確認結果に基づく。
@@ -97,7 +105,7 @@ export class PersonSegmenter {
   ): Promise<ImageSegmenter> {
     return ImageSegmenter.createFromOptions(vision, {
       baseOptions: {
-        modelAssetPath: MODEL_ASSET_URLS[modelId],
+        modelAssetPath: `${MODEL_BASE_URL}${MODEL_ASSET_PATHS[modelId]}`,
         delegate,
       },
       runningMode: 'VIDEO',

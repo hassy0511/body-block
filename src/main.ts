@@ -1,32 +1,39 @@
 import Phaser from 'phaser';
+import { BootScene } from './scenes/BootScene';
+import { TitleScene } from './scenes/TitleScene';
+import { PlayerSelectScene } from './scenes/PlayerSelectScene';
+import { HowToScene } from './scenes/HowToScene';
+import { ThemeIntroScene } from './scenes/ThemeIntroScene';
+import { CaptureScene } from './scenes/CaptureScene';
+import { JudgeScene } from './scenes/JudgeScene';
+import { ResultScene } from './scenes/ResultScene';
+import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './ui/ui';
 
-// 環境構築確認用の最小 Boot シーン。実装は未着手。
-class BootScene extends Phaser.Scene {
-  constructor() {
-    super('Boot');
-  }
-
-  create(): void {
-    this.cameras.main.setBackgroundColor('#222222');
-    this.add
-      .text(
-        this.scale.width / 2,
-        this.scale.height / 2,
-        'からだブロック凹凸 うつしてポン！\n(準備中)',
-        {
-          fontSize: '24px',
-          color: '#ffffff',
-          align: 'center',
-        },
-      )
-      .setOrigin(0.5);
-  }
-}
-
-new Phaser.Game({
+// 家庭でタブレットを立てて遊ぶ横向きを基準にする(CLAUDE.md §6)。
+// 縦向きでも遊べるよう、画面に合わせて縮小表示する。
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'app',
-  width: 1280,
-  height: 720,
-  scene: [BootScene],
+  width: GAME_WIDTH,
+  height: GAME_HEIGHT,
+  backgroundColor: COLORS.bgCss,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+  scene: [
+    BootScene,
+    TitleScene,
+    PlayerSelectScene,
+    HowToScene,
+    ThemeIntroScene,
+    CaptureScene,
+    JudgeScene,
+    ResultScene,
+  ],
 });
+
+// 開発時の動作確認から現在のシーンを参照できるようにする(本番ビルドでは含めない)
+if (import.meta.env.DEV) {
+  (window as unknown as { __game?: Phaser.Game }).__game = game;
+}
