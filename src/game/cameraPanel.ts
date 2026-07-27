@@ -64,8 +64,8 @@ export function computeCoverRect(
   return { sx: 0, sy: (sourceHeight - sh) / 2, sw: sourceWidth, sh };
 }
 
-/** カメラ表示の深さ。ゲーム側の物体より手前になるようにする。 */
-const PANEL_DEPTH = 10;
+/** カメラ表示の深さ。ゲーム側の背景より手前になるようにする。 */
+export const PANEL_DEPTH = 10;
 
 let panelSeq = 0;
 

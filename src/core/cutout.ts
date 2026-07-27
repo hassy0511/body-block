@@ -165,6 +165,11 @@ export interface CutoutPiece {
   contour: Point[];
   /** 輪郭の重心(スプライト座標系)。剛体の原点になるので絵の原点もここに合わせる。 */
   contourCentroid: Point;
+  /**
+   * スプライト左上が、撮影した静止画のどこにあたるか(静止画の画素座標)。
+   * 「カメラに写っていたその位置・その大きさで落とす」ために使う。
+   */
+  origin: Point;
   /** 元マスクでの面積(画素数)。 */
   area: number;
   /** 元マスクでの重心X。左にいた人 = P1 の割り当てに使う(CLAUDE.md §2.2)。 */
@@ -300,6 +305,7 @@ export function buildCutoutPiece(
     sprite: { canvas, width: spriteWidth, height: spriteHeight },
     contour: simplified,
     contourCentroid: polygonCentroid(simplified),
+    origin: { x: minX * scaleX, y: minY * scaleY },
     area: blob.pixelCount,
     centroidX: blob.centroidX,
   };

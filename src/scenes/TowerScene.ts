@@ -10,7 +10,7 @@ import { buildCutoutPiece, type CutoutPiece } from '../core/cutout';
 import { registerDecomp } from '../core/physics';
 import { playFanfare, playTap } from '../core/sound';
 import { session } from '../game/session';
-import { CameraPanel, type CapturedFrame } from '../game/cameraPanel';
+import { CameraPanel, PANEL_DEPTH, type CapturedFrame } from '../game/cameraPanel';
 import {
   addBackground,
   createButton,
@@ -26,11 +26,15 @@ const TOTAL_SHOTS = 6;
 /** ポーズを作るための制限時間(秒)。 */
 const SHOT_TIME_LIMIT_SEC = 8;
 
-/** カメラの表示領域(画面上部)。 */
+/**
+ * カメラの表示領域(画面上部)。
+ * 舞台と同じ幅にしてあるのが重要で、これにより
+ * 「カメラの左端に写った人は舞台の左端に落ちる」が成り立つ。
+ */
 const CAM_X = 0;
 const CAM_Y = 92;
 const CAM_WIDTH = GAME_WIDTH;
-const CAM_HEIGHT = 330;
+const CAM_HEIGHT = 430;
 
 /** 積み上げの舞台。カメラの下から床まで。 */
 const ARENA_TOP = CAM_Y + CAM_HEIGHT;
@@ -42,8 +46,12 @@ const FLOOR_Y = GAME_HEIGHT - 200;
  */
 const GOAL_Y = ARENA_TOP + 40;
 
-/** 落とすブロックの高さ(px)。 */
-const BLOCK_HEIGHT = 150;
+/**
+ * ブロックの高さの上限(px)。
+ * 端末に近づいて撮ると人が大きく写り、そのままだと舞台に収まらないので
+ * ここでだけ頭打ちにする。離れて撮っているぶんには効かない。
+ */
+const MAX_BLOCK_HEIGHT = 320;
 /** クリア判定に必要な「崩れずに保つ」時間(ミリ秒)。 */
 const HOLD_MS = 1200;
 
@@ -259,6 +267,10 @@ export class TowerScene extends Phaser.Scene {
       return;
     }
 
+    // カメラに写っていたものが、そのままの位置・そのままの大きさで落ちてくるようにする。
+    // 静止画の 1px が画面上で何 px だったか = そのまま倍率になる。
+    const viewScale = CAM_WIDTH / image.width;
+
     let dropped = 0;
     for (const blob of processed.accepted) {
       const piece = buildCutoutPiece(processed.mask, blob, processed.labels, {
@@ -267,11 +279,7 @@ export class TowerScene extends Phaser.Scene {
         sourceHeight: image.height,
       });
       if (!piece) continue;
-
-      // 立っていた場所から落とす。どこに立つかがこのゲームの選択になるので、
-      // カメラに写っていた横位置をそのまま画面上の落下位置に対応させる。
-      const dropX = CAM_X + (blob.centroidX / processed.mask.width) * CAM_WIDTH;
-      if (this.dropPiece(piece, dropX)) dropped += 1;
+      if (this.dropPiece(piece, viewScale)) dropped += 1;
     }
 
     if (dropped === 0) {
@@ -292,14 +300,19 @@ export class TowerScene extends Phaser.Scene {
     }
   }
 
-  /** 切り抜きを、写っていた横位置から落とす。 */
-  private dropPiece(piece: CutoutPiece, dropX: number): boolean {
+  /**
+   * 切り抜きを、カメラに写っていたその位置・その大きさで置いて落とす。
+   * カメラの絵から剥がれて落ちてくるように見せたいので、倍率も位置も
+   * プレビュー表示と同じものを使う。
+   */
+  private dropPiece(piece: CutoutPiece, viewScale: number): boolean {
     const key = `tower-piece-${this.textureKeys.length}`;
     if (this.textures.exists(key)) this.textures.remove(key);
     this.textures.addCanvas(key, piece.sprite.canvas);
     this.textureKeys.push(key);
 
-    const scale = BLOCK_HEIGHT / piece.sprite.height;
+    // 大きさだけは舞台に収まる範囲で頭打ちにする。位置は必ず写っていたところ。
+    const scale = Math.min(viewScale, MAX_BLOCK_HEIGHT / piece.sprite.height);
     const centroid = piece.contourCentroid;
 
     // Matter は頂点列の重心を剛体の原点にするので、輪郭を重心基準へ寄せる。
@@ -312,11 +325,10 @@ export class TowerScene extends Phaser.Scene {
       y: point.y - centroid.y,
     }));
 
-    // 写っていた横位置のまま真下へ落とす。
-    // ブロックの幅ぶんは画面内に収まるよう端で丸める。
-    const halfWidth = (piece.sprite.width * scale) / 2;
-    const x = Phaser.Math.Clamp(dropX, halfWidth, GAME_WIDTH - halfWidth);
-    const y = ARENA_TOP - BLOCK_HEIGHT * 0.6;
+    // カメラ表示の中の位置をそのまま画面の位置にする。
+    // 端に写れば端に出る。画面外へはみ出しても左右の壁が押し戻すので丸めない。
+    const x = CAM_X + (piece.origin.x + centroid.x) * viewScale;
+    const y = CAM_Y + (piece.origin.y + centroid.y) * viewScale;
 
     // 先に置いたものほど重く、摩擦も強くする。
     // 土台が軽いと新しいブロックに押されて崩れてしまうため。
@@ -346,7 +358,8 @@ export class TowerScene extends Phaser.Scene {
     block.setScale(scale);
     // 剛体の原点(輪郭の重心)に合わせて絵をずらす
     block.setOrigin(centroid.x / piece.sprite.width, centroid.y / piece.sprite.height);
-    block.setAngle(Phaser.Math.Between(-5, 5));
+    // カメラ表示より手前に置き、絵から剥がれて落ちてくるように見せる
+    block.setDepth(PANEL_DEPTH + 5);
     block.setData('hasMoved', false);
 
     this.blocks.push(block);
