@@ -11,6 +11,7 @@ export default defineConfig({
       input: {
         main: `${root}index.html`,
         verify: `${root}verify.html`,
+        themes: `${root}themes.html`,
       },
     },
   },

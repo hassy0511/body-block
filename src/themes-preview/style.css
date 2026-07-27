@@ -1,0 +1,56 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Hiragino Sans',
+    sans-serif;
+  background: #14161a;
+  color: #f0f0f0;
+}
+
+#themes-app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+header h1 {
+  font-size: 1.25rem;
+  margin: 0 0 4px;
+}
+
+.subtitle {
+  margin: 0 0 16px;
+  color: #9aa0a8;
+  font-size: 0.85rem;
+}
+
+#theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.theme-card {
+  margin: 0;
+  background: #1b1f26;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.theme-card canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.theme-card figcaption {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: #c8ced6;
+}
