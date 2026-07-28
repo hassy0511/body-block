@@ -78,18 +78,52 @@ export class GameSession {
     return this.totalScore / this.results.length;
   }
 
+  /** お題ごとの挑戦回数。「なんかいめ」の表示に使う。 */
+  private attempts: number[] = [];
+
   startGame(playerCount: number, themes: LoadedTheme[]): void {
     this.playerCount = playerCount;
     this.themes = themes;
     this.results = [];
+    this.attempts = [];
     this.currentIndex = 0;
     this.captured = null;
   }
 
+  /** いまのお題に何回挑戦したか。 */
+  get currentAttempt(): number {
+    return this.attempts[this.currentIndex] ?? 0;
+  }
+
+  /** いまのお題で記録されている点数。まだ撮っていなければ null。 */
+  get bestScoreForCurrent(): number | null {
+    return this.results[this.currentIndex]?.judge.displayScore ?? null;
+  }
+
+  /**
+   * 判定結果を記録する。
+   *
+   * 同じお題は何度でも撮り直せる。「もういっかい！」と言われたのに
+   * できないと子どもは納得しないため(SPEC_MODE1.md §2)。
+   *
+   * 記録に残すのは**いちばん良かった回**。撮り直して悪くなったぶんが
+   * 残ると、挑戦するほど損になってしまい撮り直す気がなくなる。
+   */
   recordResult(judge: JudgeResult): void {
     const theme = this.currentTheme;
     if (!theme) return;
-    this.results.push({ theme, judge });
+
+    this.attempts[this.currentIndex] = this.currentAttempt + 1;
+
+    const existing = this.results[this.currentIndex];
+    if (!existing || judge.displayScore > existing.judge.displayScore) {
+      this.results[this.currentIndex] = { theme, judge };
+    }
+  }
+
+  /** 同じお題をもう一度撮る。 */
+  retryCurrent(): void {
+    this.captured = null;
   }
 
   advance(): void {

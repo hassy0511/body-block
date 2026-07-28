@@ -36,7 +36,10 @@ export class JudgeScene extends Phaser.Scene {
     }
 
     const judge = judgePose(playerMask, theme.mask);
+    // 記録を更新する前のベストを控えておく(「こうしん！」の判定に使う)
+    const previousBest = session.bestScoreForCurrent;
     session.recordResult(judge);
+    const attempt = session.currentAttempt;
 
     const boardX = GAME_WIDTH / 2;
     const boardY = 380;
@@ -79,10 +82,53 @@ export class JudgeScene extends Phaser.Scene {
       },
     });
 
+    // 2回目からは、記録として残る点(いちばん良かった回)を添える
+    if (attempt > 1) {
+      const best = session.bestScoreForCurrent ?? judge.displayScore;
+      const updated = previousBest === null || judge.displayScore > previousBest;
+      this.add
+        .text(
+          GAME_WIDTH / 2,
+          boardY + BOARD_HEIGHT / 2 + 262,
+          updated ? `じこベスト こうしん！ (${attempt}かいめ)` : `きろくは ${best}てん のまま`,
+          bodyStyle(24),
+        )
+        .setOrigin(0.5);
+    }
+
+    this.buildControls();
+
+    this.add
+      .text(GAME_WIDTH - 24, 24, `${session.currentIndex + 1} / ${THEMES_PER_GAME}`, bodyStyle(26))
+      .setOrigin(1, 0);
+  }
+
+  /**
+   * 「もういちど」と「つぎへ」を並べる。
+   *
+   * 点が低いと「もういっかい！」と出るのに撮り直せず、
+   * 次へ進むしかないのは子どもが納得しない(SPEC_MODE1.md §2)。
+   * 回数制限は設けない。記録はいちばん良かった回が残る。
+   */
+  private buildControls(): void {
     const isLast = session.isLastTheme;
+
     createButton(
       this,
-      GAME_WIDTH / 2,
+      GAME_WIDTH / 2 - 175,
+      GAME_HEIGHT - 90,
+      'もういちど とる',
+      () => {
+        playTap();
+        session.retryCurrent();
+        this.scene.start('Capture');
+      },
+      { width: 320, height: 80, fontSize: 28 },
+    );
+
+    createButton(
+      this,
+      GAME_WIDTH / 2 + 175,
       GAME_HEIGHT - 90,
       isLast ? 'けっかを みる' : 'つぎの おだいへ',
       () => {
@@ -94,12 +140,18 @@ export class JudgeScene extends Phaser.Scene {
           this.scene.start('ThemeIntro');
         }
       },
-      { width: 400, height: 80, fontSize: 30 },
+      {
+        width: 320,
+        height: 80,
+        fontSize: 28,
+        color: COLORS.accent,
+        pressedColor: COLORS.accentDark,
+      },
     );
 
     this.add
-      .text(GAME_WIDTH - 24, 24, `${session.currentIndex + 1} / ${THEMES_PER_GAME}`, bodyStyle(26))
-      .setOrigin(1, 0);
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 28, 'なんかいでも やりなおせるよ', bodyStyle(22))
+      .setOrigin(0.5);
   }
 
   /**
