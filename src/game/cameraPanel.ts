@@ -21,6 +21,11 @@ export interface CameraPanelOptions {
   guideCount?: number;
   /** マスクの重畳を出すか。 */
   showMask?: boolean;
+  /**
+   * プレビューの推論が1回終わるたびに呼ばれる。
+   * 撮る前に「いま何点か」を出したいモードで使う。
+   */
+  onPreviewMask?: (processed: ProcessedMask) => void;
 }
 
 export interface CapturedFrame {
@@ -94,6 +99,7 @@ export class CameraPanel {
 
   private onCaptured: ((frame: CapturedFrame) => void) | null = null;
   private onFailed: ((message: string) => void) | null = null;
+  private onPreviewMask: ((processed: ProcessedMask) => void) | null = null;
 
   ready = false;
 
@@ -103,6 +109,8 @@ export class CameraPanel {
     this.y = options.y;
     this.width = options.width;
     this.height = options.height;
+
+    this.onPreviewMask = options.onPreviewMask ?? null;
 
     panelSeq += 1;
     this.videoKey = `campanel-video-${panelSeq}`;
@@ -278,7 +286,8 @@ export class CameraPanel {
 
   private updateMaskOverlay(): void {
     const segmenter = session.segmenter;
-    if (!segmenter || !this.maskTexture) return;
+    if (!segmenter) return;
+    if (!this.maskTexture && !this.onPreviewMask) return;
 
     this.isSegmenting = true;
     try {
@@ -296,6 +305,7 @@ export class CameraPanel {
       );
       result.close();
       this.paintMask(processed.mask.data, processed.mask.width, processed.mask.height);
+      this.onPreviewMask?.(processed);
     } catch {
       // プレビューの推論失敗は致命的ではない
     } finally {

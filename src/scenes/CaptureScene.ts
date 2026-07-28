@@ -4,19 +4,41 @@
 // お題の重ね表示・撮り直し判定・次のシーンへの受け渡しに専念する。
 
 import Phaser from 'phaser';
+import type { ProcessedMask } from '../core/mask';
+import { judgePose } from '../core/score';
 import { playTap } from '../core/sound';
 import { session, type CaptureRequest } from '../game/session';
-import { CameraPanel, type CapturedFrame } from '../game/cameraPanel';
-import { drawThemeSilhouette } from '../game/themeDraw';
-import { addBackground, createButton, bodyStyle, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../ui/ui';
+import { CameraPanel, PANEL_DEPTH, type CapturedFrame } from '../game/cameraPanel';
+import { drawThemeHole, drawThemeSilhouette } from '../game/themeDraw';
+import {
+  addBackground,
+  createButton,
+  titleStyle,
+  bodyStyle,
+  COLORS,
+  GAME_WIDTH,
+  GAME_HEIGHT,
+} from '../ui/ui';
 
 /** ポーズを作るための既定の制限時間(秒)。端末から離れて構えるので短すぎないようにする。 */
 export const DEFAULT_TIME_LIMIT_SEC = 10;
 
+/**
+ * カメラの表示領域。
+ *
+ * お題の画像は 16:9 なので、カメラ枠も 16:9 にしてある。
+ * 枠とお題の比率が違うと、重ねて見せている形と判定に使う形が食い違い、
+ * 「見た目は合っているのに点が出ない」ことになる。
+ */
 const CAM_X = 0;
-const CAM_Y = 130;
+const CAM_Y = 108;
 const CAM_WIDTH = GAME_WIDTH;
-const CAM_HEIGHT = 720;
+const CAM_HEIGHT = Math.round((GAME_WIDTH * 9) / 16);
+const CAM_BOTTOM = CAM_Y + CAM_HEIGHT;
+
+/** 手本として出すお題の縮小表示。 */
+const SAMPLE_WIDTH = 300;
+const SAMPLE_HEIGHT = Math.round((SAMPLE_WIDTH * 9) / 16);
 
 export class CaptureScene extends Phaser.Scene {
   private panel!: CameraPanel;
@@ -25,6 +47,7 @@ export class CaptureScene extends Phaser.Scene {
 
   private statusText!: Phaser.GameObjects.Text;
   private startLabel!: Phaser.GameObjects.Text;
+  private fitText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super('Capture');
@@ -40,6 +63,7 @@ export class CaptureScene extends Phaser.Scene {
     }
     this.request = request;
     this.busy = false;
+    this.fitText = null;
 
     this.add
       .text(GAME_WIDTH / 2, 46, request.headline, bodyStyle(30))
@@ -52,23 +76,13 @@ export class CaptureScene extends Phaser.Scene {
       width: CAM_WIDTH,
       height: CAM_HEIGHT,
       guideCount: session.playerCount,
+      onPreviewMask: request.theme ? (processed) => this.updateFit(processed) : undefined,
     });
 
-    // お題がある場合だけ、穴を薄く重ねる
-    if (request.theme) {
-      const silhouette = drawThemeSilhouette(
-        this,
-        request.theme,
-        CAM_WIDTH,
-        CAM_HEIGHT,
-        '#ffffff',
-        0.35,
-      );
-      this.add.image(CAM_X, CAM_Y, silhouette).setOrigin(0, 0);
-    }
+    if (request.theme) this.buildThemeOverlay();
 
     this.statusText = this.add
-      .text(GAME_WIDTH / 2, CAM_Y + CAM_HEIGHT + 32, 'カメラを じゅんびちゅう...', bodyStyle(24))
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 210, 'カメラを じゅんびちゅう...', bodyStyle(24))
       .setOrigin(0.5)
       .setWordWrapWidth(GAME_WIDTH - 40);
 
@@ -77,10 +91,59 @@ export class CaptureScene extends Phaser.Scene {
     void this.panel.start().then((ok) => {
       this.statusText.setText(
         ok
-          ? `「スタート！」を おしてから ${this.request.timeLimitSec}びょう。ぜんしんが うつるように はなれてね`
+          ? `「スタート！」を おしてから ${this.request.timeLimitSec}びょう。あなに からだを あわせてね`
           : 'カメラを つかえませんでした。きょかを かくにんしてね',
       );
     });
+  }
+
+  /**
+   * お題の穴をカメラ映像に重ねる。
+   *
+   * カメラ表示より手前の深さに置くこと。奥に置くと映像に隠れて
+   * まったく見えず、どこに体を持っていけばよいのか分からなくなる。
+   */
+  private buildThemeOverlay(): void {
+    const theme = this.request.theme!;
+
+    this.add
+      .image(CAM_X, CAM_Y, drawThemeHole(this, theme, CAM_WIDTH, CAM_HEIGHT))
+      .setOrigin(0, 0)
+      .setDepth(PANEL_DEPTH + 2);
+
+    // いま何点かを大きく出す。合わせている最中に見るものなのでカメラのすぐ下に置く
+    this.fitText = this.add
+      .text(GAME_WIDTH / 2, CAM_BOTTOM + 62, 'ハマりど --', titleStyle(48))
+      .setOrigin(0.5);
+
+    // 手本。穴に重ねただけだと全体の形が掴みにくいので、別に小さく出す
+    const sampleY = CAM_BOTTOM + 240;
+    this.add
+      .text(
+        GAME_WIDTH / 2,
+        sampleY - SAMPLE_HEIGHT / 2 - 32,
+        `おてほん: ${theme.name}`,
+        bodyStyle(26),
+      )
+      .setOrigin(0.5);
+    this.add.rectangle(GAME_WIDTH / 2, sampleY, SAMPLE_WIDTH + 16, SAMPLE_HEIGHT + 16, COLORS.wall);
+    this.add
+      .image(
+        GAME_WIDTH / 2,
+        sampleY,
+        drawThemeSilhouette(this, theme, SAMPLE_WIDTH, SAMPLE_HEIGHT, '#fff9ef'),
+      )
+      .setOrigin(0.5);
+  }
+
+  /** プレビューの推論結果から、いまのハマり度を出す。 */
+  private updateFit(processed: ProcessedMask): void {
+    const theme = this.request.theme;
+    if (!theme || !this.fitText) return;
+
+    const score = judgePose(processed.mask, theme.mask).displayScore;
+    this.fitText.setText(`ハマりど ${score}`);
+    this.fitText.setColor(score >= 70 ? '#209aa1' : score >= 50 ? '#c07a20' : COLORS.text);
   }
 
   private buildControls(): void {
@@ -101,6 +164,10 @@ export class CaptureScene extends Phaser.Scene {
       'カメラきりかえ',
       () => {
         playTap();
+        if (this.panel.isCountingDown) {
+          this.statusText.setText('さつえいちゅうは きりかえられないよ');
+          return;
+        }
         void this.panel.switchFacing().catch(() => {
           this.statusText.setText('カメラを きりかえられませんでした');
         });
