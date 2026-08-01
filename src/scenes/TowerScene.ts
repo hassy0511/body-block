@@ -508,7 +508,7 @@ export class TowerScene extends Phaser.Scene {
         this.scene.restart();
       },
       { width: 300, height: 80, fontSize: 30 },
-    );
+    ).setDepth(32);
 
     createButton(
       this,
@@ -526,6 +526,6 @@ export class TowerScene extends Phaser.Scene {
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
       },
-    );
+    ).setDepth(32);
   }
 }

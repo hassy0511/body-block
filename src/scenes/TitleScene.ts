@@ -33,18 +33,19 @@ export class TitleScene extends Phaser.Scene {
       this.scene.start(scene);
     };
 
-    createButton(this, 400, 400, 'ポーズでハマる！', () => start('PlayerSelect'), {
-      width: 440,
-      height: 130,
-      fontSize: 36,
-    });
+    const modes: [string, string, boolean][] = [
+      ['ポーズでハマる！', 'PlayerSelect', false],
+      ['たいそうタワー', 'TowerIntro', true],
+      ['まもって！シェルター', 'ShelterIntro', false],
+    ];
 
-    createButton(this, 880, 400, 'たいそうタワー', () => start('TowerIntro'), {
-      width: 440,
-      height: 130,
-      fontSize: 36,
-      color: COLORS.accent,
-      pressedColor: COLORS.accentDark,
+    modes.forEach(([label, scene, alt], index) => {
+      createButton(this, 250 + index * 390, 420, label, () => start(scene), {
+        width: 360,
+        height: 130,
+        fontSize: 30,
+        ...(alt ? { color: COLORS.accent, pressedColor: COLORS.accentDark } : {}),
+      });
     });
 
     this.add
