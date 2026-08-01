@@ -34,18 +34,18 @@ export class ThemeIntroScene extends Phaser.Scene {
     this.add
       .text(
         GAME_WIDTH / 2,
-        130,
+        44,
         `${session.currentIndex + 1}もんめ / ${THEMES_PER_GAME}もん`,
         bodyStyle(28),
       )
       .setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 200, theme.name, titleStyle(44)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 100, theme.name, titleStyle(44)).setOrigin(0.5);
 
     // 壁に空いた穴として見せる(壁 = 濃い色、穴 = 明るい色)
-    const boardWidth = GAME_WIDTH - 40;
+    const boardWidth = 660;
     const boardHeight = Math.round(boardWidth * (9 / 16));
-    const boardY = 290;
+    const boardY = 150;
 
     this.add.rectangle(
       GAME_WIDTH / 2,
@@ -90,13 +90,13 @@ export class ThemeIntroScene extends Phaser.Scene {
     createButton(
       this,
       GAME_WIDTH / 2,
-      GAME_HEIGHT - 120,
+      GAME_HEIGHT - 56,
       'すすむ',
       () => {
         playTap();
         goToCapture();
       },
-      { width: 280, height: 78, fontSize: 30 },
+      { width: 260, height: 70, fontSize: 30 },
     );
   }
 }

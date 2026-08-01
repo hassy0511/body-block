@@ -21,25 +21,23 @@ export class PlayerSelectScene extends Phaser.Scene {
   create(): void {
     addBackground(this);
 
-    this.add.text(GAME_WIDTH / 2, 180, 'なんにんで あそぶ？', titleStyle(42)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 120, 'なんにんで あそぶ？', titleStyle(42)).setOrigin(0.5);
 
-    const status = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 90, '', bodyStyle(26))
-      .setOrigin(0.5);
+    const status = this.add.text(GAME_WIDTH / 2, 500, '', bodyStyle(26)).setOrigin(0.5);
 
     const buttons: Phaser.GameObjects.Container[] = [];
     [1, 2, 3].forEach((count, index) => {
       const button = createButton(
         this,
-        GAME_WIDTH / 2,
-        340 + index * 150,
+        GAME_WIDTH / 2 + (index - 1) * 300,
+        320,
         `${count}にん`,
         () => {
           playTap();
           buttons.forEach((b) => b.disableInteractive());
           void this.startGame(count, status);
         },
-        { width: 320, height: 110, fontSize: 40 },
+        { width: 260, height: 130, fontSize: 42 },
       );
       buttons.push(button);
     });
@@ -47,7 +45,7 @@ export class PlayerSelectScene extends Phaser.Scene {
     createButton(
       this,
       GAME_WIDTH / 2,
-      GAME_HEIGHT - 140,
+      GAME_HEIGHT - 90,
       'もどる',
       () => {
         playTap();

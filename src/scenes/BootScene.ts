@@ -17,14 +17,14 @@ export class BootScene extends Phaser.Scene {
     this.add
       .text(
         GAME_WIDTH / 2,
-        GAME_HEIGHT / 2 - 80,
+        GAME_HEIGHT / 2 - 70,
         'からだブロック凹凸\nうつしてポン！',
         titleStyle(46),
       )
       .setOrigin(0.5);
 
     const status = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 90, 'よみこみちゅう...', bodyStyle(32))
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 70, 'よみこみちゅう...', bodyStyle(32))
       .setOrigin(0.5);
 
     // 「…」が動いて止まって見えないようにする

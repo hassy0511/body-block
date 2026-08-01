@@ -19,11 +19,11 @@ export class TitleScene extends Phaser.Scene {
     addBackground(this);
 
     this.add
-      .text(GAME_WIDTH / 2, 240, 'からだブロック凹凸\nうつしてポン！', titleStyle(48))
+      .text(GAME_WIDTH / 2, 110, 'からだブロック凹凸\nうつしてポン！', titleStyle(52))
       .setOrigin(0.5);
 
     this.add
-      .text(GAME_WIDTH / 2, 330, 'あそびたい ゲームを えらんでね', bodyStyle(30))
+      .text(GAME_WIDTH / 2, 240, 'あそびたい ゲームを えらんでね', bodyStyle(30))
       .setOrigin(0.5);
 
     const start = (scene: string): void => {
@@ -33,16 +33,16 @@ export class TitleScene extends Phaser.Scene {
       this.scene.start(scene);
     };
 
-    createButton(this, GAME_WIDTH / 2, 530, 'ポーズでハマる！', () => start('PlayerSelect'), {
-      width: 460,
-      height: 110,
-      fontSize: 34,
+    createButton(this, 400, 400, 'ポーズでハマる！', () => start('PlayerSelect'), {
+      width: 440,
+      height: 130,
+      fontSize: 36,
     });
 
-    createButton(this, GAME_WIDTH / 2, 680, 'たいそうタワー', () => start('TowerIntro'), {
-      width: 460,
-      height: 110,
-      fontSize: 34,
+    createButton(this, 880, 400, 'たいそうタワー', () => start('TowerIntro'), {
+      width: 440,
+      height: 130,
+      fontSize: 36,
       color: COLORS.accent,
       pressedColor: COLORS.accentDark,
     });

@@ -30,14 +30,15 @@ export const DEFAULT_TIME_LIMIT_SEC = 10;
  * 枠とお題の比率が違うと、重ねて見せている形と判定に使う形が食い違い、
  * 「見た目は合っているのに点が出ない」ことになる。
  */
-const CAM_X = 0;
-const CAM_Y = 108;
-const CAM_WIDTH = GAME_WIDTH;
-const CAM_HEIGHT = Math.round((GAME_WIDTH * 9) / 16);
-const CAM_BOTTOM = CAM_Y + CAM_HEIGHT;
+const CAM_X = 24;
+const CAM_Y = 84;
+const CAM_WIDTH = 800;
+const CAM_HEIGHT = Math.round((CAM_WIDTH * 9) / 16);
+/** 右の情報パネル。横長では縦に積めないので横に並べる。 */
+const SIDE_X = 1056;
 
 /** 手本として出すお題の縮小表示。 */
-const SAMPLE_WIDTH = 300;
+const SAMPLE_WIDTH = 340;
 const SAMPLE_HEIGHT = Math.round((SAMPLE_WIDTH * 9) / 16);
 
 export class CaptureScene extends Phaser.Scene {
@@ -66,9 +67,9 @@ export class CaptureScene extends Phaser.Scene {
     this.fitText = null;
 
     this.add
-      .text(GAME_WIDTH / 2, 46, request.headline, bodyStyle(30))
+      .text(GAME_WIDTH / 2, 40, request.headline, bodyStyle(30))
       .setOrigin(0.5)
-      .setWordWrapWidth(GAME_WIDTH - 40);
+      .setWordWrapWidth(GAME_WIDTH - 80);
 
     this.panel = new CameraPanel(this, {
       x: CAM_X,
@@ -82,9 +83,9 @@ export class CaptureScene extends Phaser.Scene {
     if (request.theme) this.buildThemeOverlay();
 
     this.statusText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 210, 'カメラを じゅんびちゅう...', bodyStyle(24))
+      .text(SIDE_X, 560, 'カメラを じゅんびちゅう...', bodyStyle(23))
       .setOrigin(0.5)
-      .setWordWrapWidth(GAME_WIDTH - 40);
+      .setWordWrapWidth(400);
 
     this.buildControls();
 
@@ -111,25 +112,18 @@ export class CaptureScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setDepth(PANEL_DEPTH + 2);
 
-    // いま何点かを大きく出す。合わせている最中に見るものなのでカメラのすぐ下に置く
-    this.fitText = this.add
-      .text(GAME_WIDTH / 2, CAM_BOTTOM + 62, 'ハマりど --', titleStyle(48))
-      .setOrigin(0.5);
+    // いま何点かを大きく出す。離れて見るので大きく、右パネルの一番上に置く
+    this.fitText = this.add.text(SIDE_X, 130, 'ハマりど --', titleStyle(46)).setOrigin(0.5);
 
     // 手本。穴に重ねただけだと全体の形が掴みにくいので、別に小さく出す
-    const sampleY = CAM_BOTTOM + 240;
+    const sampleY = 340;
     this.add
-      .text(
-        GAME_WIDTH / 2,
-        sampleY - SAMPLE_HEIGHT / 2 - 32,
-        `おてほん: ${theme.name}`,
-        bodyStyle(26),
-      )
+      .text(SIDE_X, sampleY - SAMPLE_HEIGHT / 2 - 32, `おてほん: ${theme.name}`, bodyStyle(26))
       .setOrigin(0.5);
-    this.add.rectangle(GAME_WIDTH / 2, sampleY, SAMPLE_WIDTH + 16, SAMPLE_HEIGHT + 16, COLORS.wall);
+    this.add.rectangle(SIDE_X, sampleY, SAMPLE_WIDTH + 16, SAMPLE_HEIGHT + 16, COLORS.wall);
     this.add
       .image(
-        GAME_WIDTH / 2,
+        SIDE_X,
         sampleY,
         drawThemeSilhouette(this, theme, SAMPLE_WIDTH, SAMPLE_HEIGHT, '#fff9ef'),
       )
@@ -149,18 +143,18 @@ export class CaptureScene extends Phaser.Scene {
   private buildControls(): void {
     const startButton = createButton(
       this,
-      GAME_WIDTH / 2,
-      GAME_HEIGHT - 130,
+      300,
+      GAME_HEIGHT - 58,
       'スタート！',
       () => this.beginShot(),
-      { width: 320, height: 80, fontSize: 34 },
+      { width: 340, height: 84, fontSize: 34 },
     );
     this.startLabel = startButton.getData('label') as Phaser.GameObjects.Text;
 
     createButton(
       this,
-      GAME_WIDTH / 2 - 170,
-      GAME_HEIGHT - 44,
+      620,
+      GAME_HEIGHT - 58,
       'カメラきりかえ',
       () => {
         playTap();
@@ -173,8 +167,8 @@ export class CaptureScene extends Phaser.Scene {
         });
       },
       {
-        width: 300,
-        height: 60,
+        width: 260,
+        height: 70,
         fontSize: 24,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
@@ -184,16 +178,16 @@ export class CaptureScene extends Phaser.Scene {
     // 手動の撮り直しボタンは常設する(SPEC_MODE1.md §2)
     createButton(
       this,
-      GAME_WIDTH / 2 + 170,
-      GAME_HEIGHT - 44,
+      880,
+      GAME_HEIGHT - 58,
       'とりなおす',
       () => {
         playTap();
         this.scene.restart();
       },
       {
-        width: 280,
-        height: 60,
+        width: 220,
+        height: 70,
         fontSize: 24,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,

@@ -36,20 +36,24 @@ const SHOT_TIME_LIMIT_SEC = 8;
  * 枠の高さを変えても大きさはほとんど変わらない(写る範囲が変わるだけ)。
  * 画面いっぱいの 720px では、離れて撮ってもブロックが舞台の半分を占めていた。
  */
-const STAGE_WIDTH = 520;
+const STAGE_WIDTH = 300;
 const STAGE_X = Math.round((GAME_WIDTH - STAGE_WIDTH) / 2);
 const STAGE_RIGHT = STAGE_X + STAGE_WIDTH;
 
-/** カメラの表示領域(画面上部)。 */
+/** カメラの表示領域(柱の上部)。 */
 const CAM_X = STAGE_X;
-const CAM_Y = 96;
+const CAM_Y = 56;
 const CAM_WIDTH = STAGE_WIDTH;
 /** 16:9 にしておくと、横向きの映像をほとんど切り取らずに写せる。 */
 const CAM_HEIGHT = Math.round((STAGE_WIDTH * 9) / 16);
 
 /** 積み上げの舞台。カメラの下から床まで。 */
 const ARENA_TOP = CAM_Y + CAM_HEIGHT;
-const FLOOR_Y = GAME_HEIGHT - 190;
+const FLOOR_Y = GAME_HEIGHT - 60;
+
+/** 左右の余白パネル。横長では柱の脇が大きく空くので、情報はここに置く。 */
+const LEFT_PANEL_X = 230;
+const RIGHT_PANEL_X = GAME_WIDTH - 230;
 /**
  * ここまで積めたらクリア。舞台の上端(カメラのすぐ下)を目標にする。
  * 「舞台を埋めきる」が目標なので分かりやすく、
@@ -62,7 +66,7 @@ const GOAL_Y = ARENA_TOP + 40;
  * 端末に近づいて撮ると人が大きく写り、そのままだと舞台に収まらないので
  * ここでだけ頭打ちにする。離れて撮っているぶんには効かない。
  */
-const MAX_BLOCK_HEIGHT = 260;
+const MAX_BLOCK_HEIGHT = 180;
 /** クリア判定に必要な「崩れずに保つ」時間(ミリ秒)。 */
 const HOLD_MS = 1200;
 
@@ -170,34 +174,39 @@ export class TowerScene extends Phaser.Scene {
     }
     line.strokePath();
     this.add
-      .text(STAGE_X, GOAL_Y + 8, 'ここまで つみあげよう！', bodyStyle(20))
+      .text(STAGE_X - 16, GOAL_Y, 'ゴール', bodyStyle(24))
+      .setOrigin(1, 0.5)
       .setColor('#209aa1');
 
     this.bestMarker = this.add.graphics();
   }
 
   private buildHud(): void {
-    this.add
-      .text(GAME_WIDTH / 2, 26, 'たいそうタワー', titleStyle(38))
-      .setOrigin(0.5)
-      .setDepth(20);
+    // 左のパネル: 進み具合。離れた場所から読むので大きく出す
+    this.add.text(LEFT_PANEL_X, 90, 'たいそうタワー', titleStyle(40)).setOrigin(0.5).setDepth(20);
 
-    this.countText = this.add.text(16, 62, '', bodyStyle(24)).setOrigin(0, 0).setDepth(20);
+    this.countText = this.add
+      .text(LEFT_PANEL_X, 240, '', titleStyle(34))
+      .setOrigin(0.5)
+      .setAlign('center')
+      .setDepth(20);
     this.updateCountText();
 
     this.statusText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 130, 'カメラを じゅんびちゅう...', bodyStyle(22))
+      .text(LEFT_PANEL_X, 430, 'カメラを じゅんびちゅう...', bodyStyle(24))
       .setOrigin(0.5)
-      .setWordWrapWidth(GAME_WIDTH - 40)
+      .setAlign('center')
+      .setWordWrapWidth(400)
       .setDepth(20);
 
+    // 右のパネル: 操作
     this.startButton = createButton(
       this,
-      GAME_WIDTH / 2,
-      GAME_HEIGHT - 62,
+      RIGHT_PANEL_X,
+      220,
       'スタート！',
       () => this.beginShot(),
-      { width: 250, height: 74, fontSize: 30 },
+      { width: 320, height: 100, fontSize: 34 },
     );
     this.startLabel = this.startButton.getData('label') as Phaser.GameObjects.Text;
 
@@ -205,8 +214,8 @@ export class TowerScene extends Phaser.Scene {
     // 外カメラだと離れて全身を撮りやすい。どちらも使うので切り替えを残す。
     createButton(
       this,
-      118,
-      GAME_HEIGHT - 62,
+      RIGHT_PANEL_X,
+      360,
       'カメラきりかえ',
       () => {
         playTap();
@@ -220,9 +229,9 @@ export class TowerScene extends Phaser.Scene {
         });
       },
       {
-        width: 212,
-        height: 62,
-        fontSize: 22,
+        width: 280,
+        height: 76,
+        fontSize: 26,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
       },
@@ -230,17 +239,17 @@ export class TowerScene extends Phaser.Scene {
 
     createButton(
       this,
-      GAME_WIDTH - 86,
-      GAME_HEIGHT - 62,
+      RIGHT_PANEL_X,
+      470,
       'やめる',
       () => {
         playTap();
         this.scene.start('Title');
       },
       {
-        width: 142,
-        height: 62,
-        fontSize: 24,
+        width: 280,
+        height: 76,
+        fontSize: 26,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
       },
@@ -248,7 +257,7 @@ export class TowerScene extends Phaser.Scene {
   }
 
   private updateCountText(): void {
-    this.countText.setText(`のこり ${this.remaining}かい / たかさ ${this.progressPercent()}%`);
+    this.countText.setText(`のこり ${this.remaining}かい\nたかさ ${this.progressPercent()}%`);
   }
 
   private progressPercent(): number {
@@ -481,28 +490,30 @@ export class TowerScene extends Phaser.Scene {
   }
 
   private showBanner(message: string, color: number): void {
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, 300, color, 0.94);
+    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, 340, color, 0.94).setDepth(30);
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, message, titleStyle(40))
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 70, message, titleStyle(42))
       .setOrigin(0.5)
-      .setColor('#ffffff');
+      .setAlign('center')
+      .setColor('#ffffff')
+      .setDepth(31);
 
     createButton(
       this,
-      GAME_WIDTH / 2,
-      GAME_HEIGHT / 2 + 40,
+      GAME_WIDTH / 2 - 180,
+      GAME_HEIGHT / 2 + 60,
       'もういちど',
       () => {
         playTap();
         this.scene.restart();
       },
-      { width: 300, height: 70, fontSize: 30 },
+      { width: 300, height: 80, fontSize: 30 },
     );
 
     createButton(
       this,
-      GAME_WIDTH / 2,
-      GAME_HEIGHT / 2 + 125,
+      GAME_WIDTH / 2 + 180,
+      GAME_HEIGHT / 2 + 60,
       'タイトルへ',
       () => {
         playTap();
@@ -510,7 +521,7 @@ export class TowerScene extends Phaser.Scene {
       },
       {
         width: 300,
-        height: 70,
+        height: 80,
         fontSize: 30,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
