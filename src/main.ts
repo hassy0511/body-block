@@ -11,6 +11,10 @@ import { TowerIntroScene } from './scenes/TowerIntroScene';
 import { TowerScene } from './scenes/TowerScene';
 import { ShelterIntroScene } from './scenes/ShelterIntroScene';
 import { ShelterScene } from './scenes/ShelterScene';
+import { BattleIntroScene } from './scenes/BattleIntroScene';
+import { BattleScene } from './scenes/BattleScene';
+import { ZukanIntroScene } from './scenes/ZukanIntroScene';
+import { ZukanScene } from './scenes/ZukanScene';
 import { installErrorOverlay } from './core/errorOverlay';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './ui/ui';
 
@@ -50,6 +54,10 @@ const game = new Phaser.Game({
     TowerScene,
     ShelterIntroScene,
     ShelterScene,
+    BattleIntroScene,
+    BattleScene,
+    ZukanIntroScene,
+    ZukanScene,
   ],
 });
 

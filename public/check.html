@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>からだブロック凹凸 — 動作確認チェックリスト</title>
+    <style>
+      :root {
+        --bg: #fff3e0;
+        --card: #ffffff;
+        --text: #5a4634;
+        --primary: #ff8a3d;
+        --accent: #209aa1;
+        --line: #eadbc8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+      }
+      .wrap {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 24px 16px 80px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 8px 0 4px;
+      }
+      .sub {
+        color: #8a7460;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+      }
+      .links a {
+        display: inline-block;
+        background: var(--primary);
+        color: #fff;
+        text-decoration: none;
+        font-weight: bold;
+        padding: 10px 22px;
+        border-radius: 999px;
+        margin: 0 8px 8px 0;
+      }
+      .links a.alt {
+        background: var(--accent);
+      }
+      section {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px;
+        margin: 16px 0;
+      }
+      section h2 {
+        font-size: 1.1rem;
+        margin: 0 0 4px;
+      }
+      section .how {
+        font-size: 0.9rem;
+        color: #8a7460;
+        margin: 0 0 10px;
+      }
+      label.check {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 7px 6px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      label.check:hover {
+        background: #fff8ee;
+      }
+      label.check input {
+        margin-top: 6px;
+        flex: none;
+        width: 18px;
+        height: 18px;
+        accent-color: var(--primary);
+      }
+      label.check.done {
+        color: #9c8b7a;
+        text-decoration: line-through;
+      }
+      .note {
+        background: #fff8ee;
+        border-left: 4px solid var(--primary);
+        padding: 10px 14px;
+        border-radius: 0 10px 10px 0;
+        font-size: 0.92rem;
+        margin: 10px 0;
+      }
+      .warn {
+        border-left-color: #d9534f;
+      }
+      .progress {
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        padding: 10px 0;
+        font-weight: bold;
+      }
+      .reset {
+        color: var(--accent);
+        font-size: 0.85rem;
+        cursor: pointer;
+        text-decoration: underline;
+        background: none;
+        border: none;
+        font-family: inherit;
+      }
+      code {
+        background: #f6ede0;
+        padding: 1px 6px;
+        border-radius: 6px;
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>からだブロック凹凸 うつしてポン！ — 動作確認チェックリスト</h1>
+      <p class="sub">
+        全5モード実装ずみ。タイトルからどのゲームも自由に選べます（ステージ解放なし）。チェックはこの端末に保存されます。
+      </p>
+
+      <p class="links">
+        <a href="./">▶ ゲームをひらく</a>
+        <a class="alt" href="./verify.html">切り抜き検証ページ</a>
+      </p>
+
+      <div class="progress">
+        <span id="progress"></span> <button class="reset" id="reset">チェックを全部リセット</button>
+      </div>
+
+      <section>
+        <h2>0. 準備（あそぶ前に一度）</h2>
+        <p class="how">
+          推奨: テレビ・大型モニターに接続（ミラーリング可）。次点タブレット。全身を写すには端末から
+          1.5〜3m 離れる必要があります。
+        </p>
+        <label class="check"
+          ><input type="checkbox" data-key="prep-tv" /><span
+            >当日使うテレビ / モニターに実際につないで映った</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="prep-cam" /><span
+            >カメラ許可のダイアログで「許可」を選べた</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="prep-cache" /><span
+            >最新版になっている（表示が古いときはタブを閉じて開き直す。Safari
+            はリロード長押し→キャッシュ無視）</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="prep-load" /><span
+            >「よみこみちゅう...」の後にタイトルが出る（初回はモデル約16MBのダウンロードで待ちあり）</span
+          ></label
+        >
+      </section>
+
+      <section>
+        <h2>1. ポーズでハマる！（型はめ）</h2>
+        <p class="how">タイトル → ポーズでハマる！ → 人数 → お題を見て撮影。</p>
+        <label class="check"
+          ><input type="checkbox" data-key="m1-hole" /><span
+            >撮影画面でお題の「穴」がカメラ映像に重なって見える（外側が暗く、ふちが黄色）</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m1-fit" /><span
+            >右の「ハマりど」の数字がポーズに合わせてリアルタイムに変わる</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m1-judge" /><span
+            >カウントダウン後に判定画面が出て、点数とランクが表示される</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m1-retry" /><span
+            >「もういちど とる」で同じお題を撮り直せて、記録は良い方の点が残る</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m1-multi" /><span
+            >【複数人】2人で離れて立つと、2人ともマスク（水色）が別々に出る</span
+          ></label
+        >
+      </section>
+
+      <section>
+        <h2>2. たいそうタワー（積み上げ）</h2>
+        <p class="how">
+          タイトル → たいそうタワー → 人数 → 中央の柱に撮った姿が落ちて積み上がる。撮影6回。
+        </p>
+        <label class="check"
+          ><input type="checkbox" data-key="m2-pos" /><span
+            >カメラの左端に写ると柱の左端に落ちる（写った位置＝落ちる位置）</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m2-size" /><span
+            >落ちてくるブロックの大きさがカメラに写った大きさと同じ</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m2-stack" /><span
+            >ブロック同士がすり抜けず、積み重なる</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m2-result" /><span
+            >6回使い切ると「ここまで
+            つめたよ！」と到達度%が出る（積み上げ中に100%と誤表示しない）</span
+          ></label
+        >
+      </section>
+
+      <section>
+        <h2>3. まもって！シェルター（防御）</h2>
+        <p class="how">
+          タイトル → まもって！シェルター → 人数 → 撮影4回で屋根を作る → 12秒のボールタイム。
+        </p>
+        <label class="check"
+          ><input type="checkbox" data-key="m3-egg" /><span
+            >たまごちゃんが毎回ちがう場所にいる</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m3-roof" /><span
+            >撮った姿が写っていた位置に落ちて、屋根として重なる</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m3-ball" /><span
+            >ボールが屋根に当たって跳ね、隙間からだけ落ちてくる</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m3-heart" /><span
+            >たまごちゃんに当たるとハートが減り、点滅する</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m3-end" /><span
+            >12秒たつと必ず結果が出る（守りきり / 失敗どちらも「◯こ ふせいだ」つき）</span
+          ></label
+        >
+      </section>
+
+      <section>
+        <h2>4. こわしてバトル（対戦）★今回追加</h2>
+        <p class="how">
+          タイトル → こわしてバトル → ひとりで /
+          ふたりで。カメラは中央上、写った位置が攻撃先の柱の同じ位置に落ちる。
+        </p>
+        <label class="check"
+          ><input type="checkbox" data-key="m4-solo" /><span
+            >【ひとりで】5回以内にタワーを崩すと「こわした！」、崩せないと再挑戦をうながす表示</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m4-turn" /><span
+            >【ふたりで】あか→あお→あか…と交互に番が回り、▼マークが攻撃先の上に出る</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m4-aim" /><span
+            >カメラの左に写るとタワーの左側に落ちる（立ち位置で狙える）</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m4-crown" /><span
+            >かんむりが床まで落ちると勝敗が出る。一瞬のバウンドでは誤判定しない</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m4-fail" /><span
+            >誰も写らず撮影失敗した回は、回数を消費しない</span
+          ></label
+        >
+      </section>
+
+      <section>
+        <h2>5. いきものずかん（鑑賞）★今回追加</h2>
+        <p class="how">
+          タイトル → いきものずかん。勝ち負けなし。「なかまを よぶ」で何度でも追加。
+        </p>
+        <label class="check"
+          ><input type="checkbox" data-key="m5-swim" /><span
+            >撮った姿が水槽をふよふよ泳ぐ（沈まない・画面の外に出ない）</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m5-add" /><span
+            >「なかまを よぶ」を繰り返すと生き物が増え、「なかま: ◯ひき」が更新される</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m5-cap" /><span
+            >13ひき目を追加すると一番古い生き物が消える（上限12）</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m5-calm" /><span
+            >動きがゆったりしている（激しく回転・加速しない）</span
+          ></label
+        >
+      </section>
+
+      <section>
+        <h2>既知の注意点</h2>
+        <div class="note">
+          3人用のお題は現在2種類（さんにんばんざい・かいだん）。3人プレイはすぐ一周します。
+        </div>
+        <div class="note warn">
+          モード4・5
+          は実機（カメラつき端末）での確認がまだです。おかしな挙動があればそのまま教えてください。
+        </div>
+        <div class="note warn">
+          複数人が近くに立つと1つの塊として切り抜かれます（仕様）。分かれないときは左右にもっと離れる。
+        </div>
+        <div class="note">Android Chrome は未確認です（iOS Safari は確認ずみ）。</div>
+      </section>
+    </div>
+
+    <script>
+      // チェック状態は端末の localStorage にだけ保存する（外部送信なし）
+      const KEY = 'bodyblock.check.';
+      const boxes = Array.from(document.querySelectorAll('input[type="checkbox"]'));
+      const progress = document.getElementById('progress');
+
+      function refresh() {
+        let done = 0;
+        for (const box of boxes) {
+          box.closest('label').classList.toggle('done', box.checked);
+          if (box.checked) done += 1;
+        }
+        progress.textContent = 'チェック ' + done + ' / ' + boxes.length;
+      }
+
+      for (const box of boxes) {
+        box.checked = localStorage.getItem(KEY + box.dataset.key) === '1';
+        box.addEventListener('change', () => {
+          localStorage.setItem(KEY + box.dataset.key, box.checked ? '1' : '0');
+          refresh();
+        });
+      }
+
+      document.getElementById('reset').addEventListener('click', () => {
+        for (const box of boxes) {
+          box.checked = false;
+          localStorage.removeItem(KEY + box.dataset.key);
+        }
+        refresh();
+      });
+
+      refresh();
+    </script>
+  </body>
+</html>

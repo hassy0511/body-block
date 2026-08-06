@@ -19,11 +19,11 @@ export class TitleScene extends Phaser.Scene {
     addBackground(this);
 
     this.add
-      .text(GAME_WIDTH / 2, 110, 'からだブロック凹凸\nうつしてポン！', titleStyle(52))
+      .text(GAME_WIDTH / 2, 96, 'からだブロック凹凸\nうつしてポン！', titleStyle(50))
       .setOrigin(0.5);
 
     this.add
-      .text(GAME_WIDTH / 2, 240, 'あそびたい ゲームを えらんでね', bodyStyle(30))
+      .text(GAME_WIDTH / 2, 220, 'あそびたい ゲームを えらんでね', bodyStyle(28))
       .setOrigin(0.5);
 
     const start = (scene: string): void => {
@@ -33,17 +33,24 @@ export class TitleScene extends Phaser.Scene {
       this.scene.start(scene);
     };
 
+    // どのゲームも最初から自由に選べる。ステージ解放のような縛りは作らない
     const modes: [string, string, boolean][] = [
       ['ポーズでハマる！', 'PlayerSelect', false],
       ['たいそうタワー', 'TowerIntro', true],
       ['まもって！シェルター', 'ShelterIntro', false],
+      ['こわしてバトル', 'BattleIntro', true],
+      ['いきものずかん', 'ZukanIntro', false],
     ];
 
     modes.forEach(([label, scene, alt], index) => {
-      createButton(this, 250 + index * 390, 420, label, () => start(scene), {
+      // 上段3つ・下段2つの2列
+      const row = index < 3 ? 0 : 1;
+      const x = row === 0 ? 250 + index * 390 : 445 + (index - 3) * 390;
+      const y = row === 0 ? 340 : 490;
+      createButton(this, x, y, label, () => start(scene), {
         width: 360,
-        height: 130,
-        fontSize: 30,
+        height: 110,
+        fontSize: 28,
         ...(alt ? { color: COLORS.accent, pressedColor: COLORS.accentDark } : {}),
       });
     });
