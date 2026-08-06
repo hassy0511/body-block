@@ -6,7 +6,7 @@
 import Phaser from 'phaser';
 import { judgePose, RANK_LABELS } from '../core/score';
 import { playFanfare, playTap } from '../core/sound';
-import { session, THEMES_PER_GAME } from '../game/session';
+import { session } from '../game/session';
 import { addBackground, createButton, titleStyle, bodyStyle, COLORS, GAME_WIDTH } from '../ui/ui';
 
 // 比較画像は左、点数は右。横長では縦に積めない。
@@ -89,7 +89,12 @@ export class JudgeScene extends Phaser.Scene {
     this.buildControls();
 
     this.add
-      .text(GAME_WIDTH - 24, 24, `${session.currentIndex + 1} / ${THEMES_PER_GAME}`, bodyStyle(26))
+      .text(
+        GAME_WIDTH - 24,
+        24,
+        `${session.currentIndex + 1} / ${session.themeCount}`,
+        bodyStyle(26),
+      )
       .setOrigin(1, 0);
   }
 

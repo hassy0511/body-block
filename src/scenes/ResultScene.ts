@@ -2,7 +2,7 @@
 
 import Phaser from 'phaser';
 import { playFanfare, playTap } from '../core/sound';
-import { session, overallRank, OVERALL_RANK_LABELS, THEMES_PER_GAME } from '../game/session';
+import { session, overallRank, OVERALL_RANK_LABELS } from '../game/session';
 import {
   addBackground,
   createButton,
@@ -40,7 +40,7 @@ export class ResultScene extends Phaser.Scene {
       this.add.text(GAME_WIDTH / 2, 200, 'きろくが ありませんでした', bodyStyle(30)).setOrigin(0.5);
     }
 
-    const maxScore = THEMES_PER_GAME * 100;
+    const maxScore = session.themeCount * 100;
     this.add
       .text(GAME_WIDTH / 2, 410, `ごうけい ${total} / ${maxScore} てん`, titleStyle(40))
       .setOrigin(0.5);

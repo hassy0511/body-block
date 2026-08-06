@@ -60,6 +60,17 @@ export class GameSession {
   /** モデルの読み込みは重いので、ゲーム全体で1つを使い回す。 */
   segmenter: PersonSegmenter | null = null;
 
+  /**
+   * このゲームで実際に出るお題の数。
+   *
+   * THEMES_PER_GAME は「最大いくつ出すか」でしかない。
+   * 人数によってはお題が足りず（3人用は2件しかない）それより少なくなるので、
+   * 表示や満点の計算にはこちらを使う。
+   */
+  get themeCount(): number {
+    return this.themes.length;
+  }
+
   get currentTheme(): LoadedTheme | null {
     return this.themes[this.currentIndex] ?? null;
   }

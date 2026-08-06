@@ -11,7 +11,7 @@ import {
   GAME_HEIGHT,
 } from '../ui/ui';
 import { playTap } from '../core/sound';
-import { session, THEMES_PER_GAME } from '../game/session';
+import { session } from '../game/session';
 import { drawThemeSilhouette } from '../game/themeDraw';
 import { DEFAULT_TIME_LIMIT_SEC } from './CaptureScene';
 
@@ -35,7 +35,7 @@ export class ThemeIntroScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         44,
-        `${session.currentIndex + 1}もんめ / ${THEMES_PER_GAME}もん`,
+        `${session.currentIndex + 1}もんめ / ${session.themeCount}もん`,
         bodyStyle(28),
       )
       .setOrigin(0.5);

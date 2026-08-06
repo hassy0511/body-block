@@ -37,7 +37,7 @@ export class HowToScene extends Phaser.Scene {
     });
 
     this.add
-      .text(GAME_WIDTH / 2, 510, 'ぜんぶで 3かい ちょうせん するよ', bodyStyle(26))
+      .text(GAME_WIDTH / 2, 510, 'なんもんか ちょうせん するよ', bodyStyle(26))
       .setOrigin(0.5);
 
     createButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 90, 'はじめる', () => {
