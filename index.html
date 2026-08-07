@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>からだブロック凹凸 うつしてポン！</title>
+
+    <!-- ホーム画面に追加すると、アドレスバーなしのアプリ表示で開く。
+         Service Worker(オフラインキャッシュ)は使わない(CLAUDE.md §6)。 -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="うつしてポン" />
+    <meta name="theme-color" content="#fff3e0" />
+    <link rel="apple-touch-icon" href="icons/icon-180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
   </head>
   <body>
     <div id="app"></div>
