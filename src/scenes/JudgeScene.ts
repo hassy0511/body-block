@@ -7,15 +7,18 @@ import Phaser from 'phaser';
 import { judgePose, RANK_LABELS } from '../core/score';
 import { playFanfare, playTap } from '../core/sound';
 import { session } from '../game/session';
-import { addBackground, createButton, titleStyle, bodyStyle, COLORS, GAME_WIDTH } from '../ui/ui';
+import {
+  addBackground,
+  createButton,
+  titleStyle,
+  bodyStyle,
+  COLORS,
+  GAME_WIDTH,
+  GAME_HEIGHT,
+} from '../ui/ui';
 
-// 比較画像は左、点数は右。横長では縦に積めない。
-const BOARD_WIDTH = 620;
-const BOARD_HEIGHT = Math.round((BOARD_WIDTH * 9) / 16);
-const BOARD_X = 350;
-const BOARD_Y = 300;
-/** 右の情報パネル。 */
-const SIDE_X = 950;
+const BOARD_WIDTH = 660;
+const BOARD_HEIGHT = 371;
 
 export class JudgeScene extends Phaser.Scene {
   constructor() {
@@ -38,18 +41,26 @@ export class JudgeScene extends Phaser.Scene {
     session.recordResult(judge);
     const attempt = session.currentAttempt;
 
-    this.add.rectangle(BOARD_X, BOARD_Y, BOARD_WIDTH, BOARD_HEIGHT, COLORS.wall);
-    this.add.image(BOARD_X, BOARD_Y, this.buildComparisonTexture(judge, theme.mask)).setOrigin(0.5);
+    const boardX = GAME_WIDTH / 2;
+    const boardY = 380;
 
-    this.add.text(BOARD_X, 42, `${theme.name}`, bodyStyle(30)).setOrigin(0.5);
+    this.add.rectangle(boardX, boardY, BOARD_WIDTH, BOARD_HEIGHT, COLORS.wall);
+    this.add.image(boardX, boardY, this.buildComparisonTexture(judge, theme.mask)).setOrigin(0.5);
+
+    this.add.text(GAME_WIDTH / 2, 40, `${theme.name}`, bodyStyle(30)).setOrigin(0.5);
 
     // 凡例
-    this.addLegend(BOARD_X, BOARD_Y + BOARD_HEIGHT / 2 + 40);
+    this.addLegend(GAME_WIDTH / 2, boardY + BOARD_HEIGHT / 2 + 44);
 
     // スコアは 0 から回して発表する
-    const scoreText = this.add.text(SIDE_X, 180, 'ハマりど 0', titleStyle(50)).setOrigin(0.5);
+    const scoreText = this.add
+      .text(GAME_WIDTH / 2, boardY + BOARD_HEIGHT / 2 + 130, 'ハマりど 0', titleStyle(50))
+      .setOrigin(0.5);
 
-    const rankText = this.add.text(SIDE_X, 290, '', titleStyle(42)).setOrigin(0.5).setAlpha(0);
+    const rankText = this.add
+      .text(GAME_WIDTH / 2, boardY + BOARD_HEIGHT / 2 + 210, '', titleStyle(40))
+      .setOrigin(0.5)
+      .setAlpha(0);
 
     this.tweens.addCounter({
       from: 0,
@@ -77,13 +88,12 @@ export class JudgeScene extends Phaser.Scene {
       const updated = previousBest === null || judge.displayScore > previousBest;
       this.add
         .text(
-          SIDE_X,
-          370,
+          GAME_WIDTH / 2,
+          boardY + BOARD_HEIGHT / 2 + 262,
           updated ? `じこベスト こうしん！ (${attempt}かいめ)` : `きろくは ${best}てん のまま`,
           bodyStyle(24),
         )
-        .setOrigin(0.5)
-        .setWordWrapWidth(420);
+        .setOrigin(0.5);
     }
 
     this.buildControls();
@@ -110,21 +120,21 @@ export class JudgeScene extends Phaser.Scene {
 
     createButton(
       this,
-      SIDE_X,
-      460,
+      GAME_WIDTH / 2 - 175,
+      GAME_HEIGHT - 90,
       'もういちど とる',
       () => {
         playTap();
         session.retryCurrent();
         this.scene.start('Capture');
       },
-      { width: 340, height: 84, fontSize: 28 },
+      { width: 320, height: 80, fontSize: 28 },
     );
 
     createButton(
       this,
-      SIDE_X,
-      570,
+      GAME_WIDTH / 2 + 175,
+      GAME_HEIGHT - 90,
       isLast ? 'けっかを みる' : 'つぎの おだいへ',
       () => {
         playTap();
@@ -136,15 +146,17 @@ export class JudgeScene extends Phaser.Scene {
         }
       },
       {
-        width: 340,
-        height: 84,
+        width: 320,
+        height: 80,
         fontSize: 28,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
       },
     );
 
-    this.add.text(SIDE_X, 650, 'なんかいでも やりなおせるよ', bodyStyle(22)).setOrigin(0.5);
+    this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 28, 'なんかいでも やりなおせるよ', bodyStyle(22))
+      .setOrigin(0.5);
   }
 
   /**
@@ -219,7 +231,7 @@ export class JudgeScene extends Phaser.Scene {
     ];
 
     items.forEach((item, index) => {
-      const x = centerX - 200 + index * 175;
+      const x = centerX - 230 + index * 200;
       this.add.rectangle(x - 20, y, 22, 22, item.color).setOrigin(0.5);
       this.add.text(x + 4, y, item.label, bodyStyle(22)).setOrigin(0, 0.5);
     });

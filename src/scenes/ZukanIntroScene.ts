@@ -20,7 +20,7 @@ export class ZukanIntroScene extends Phaser.Scene {
   create(): void {
     addBackground(this);
 
-    this.add.text(GAME_WIDTH / 2, 90, 'いきものずかん', titleStyle(46)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 180, 'いきものずかん', titleStyle(44)).setOrigin(0.5);
 
     [
       'しゃしんを とると、その すがたが',
@@ -29,15 +29,15 @@ export class ZukanIntroScene extends Phaser.Scene {
       'かちまけは ないよ。ながめて たのしもう！',
     ].forEach((line, index) => {
       this.add
-        .text(GAME_WIDTH / 2, 190 + index * 50, line, bodyStyle(27))
+        .text(GAME_WIDTH / 2, 330 + index * 64, line, bodyStyle(27))
         .setOrigin(0.5)
-        .setWordWrapWidth(GAME_WIDTH - 120);
+        .setWordWrapWidth(GAME_WIDTH - 60);
     });
 
     createButton(
       this,
       GAME_WIDTH / 2,
-      490,
+      760,
       'すいそうへ いく',
       () => {
         playTap();
@@ -45,13 +45,13 @@ export class ZukanIntroScene extends Phaser.Scene {
         session.captureRequest = null;
         this.scene.start('Zukan');
       },
-      { width: 360, height: 100, fontSize: 32 },
+      { width: 400, height: 110, fontSize: 34 },
     );
 
     createButton(
       this,
       GAME_WIDTH / 2,
-      GAME_HEIGHT - 60,
+      GAME_HEIGHT - 100,
       'もどる',
       () => {
         playTap();

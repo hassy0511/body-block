@@ -39,16 +39,12 @@ const STAGE_X = Math.round((GAME_WIDTH - STAGE_WIDTH) / 2);
 const STAGE_RIGHT = STAGE_X + STAGE_WIDTH;
 
 const CAM_X = STAGE_X;
-const CAM_Y = 24;
+const CAM_Y = 96;
 const CAM_WIDTH = STAGE_WIDTH;
 const CAM_HEIGHT = Math.round((STAGE_WIDTH * 9) / 16);
 
 const ARENA_TOP = CAM_Y + CAM_HEIGHT;
-const FLOOR_Y = GAME_HEIGHT - 70;
-
-/** 左右の余白パネル。 */
-const LEFT_PANEL_X = 175;
-const RIGHT_PANEL_X = GAME_WIDTH - 175;
+const FLOOR_Y = GAME_HEIGHT - 200;
 
 /** 当たってよい回数。 */
 const HEARTS = 3;
@@ -191,45 +187,39 @@ export class ShelterScene extends Phaser.Scene {
 
   private buildHud(): void {
     this.add
-      .text(LEFT_PANEL_X, 70, 'まもって！\nシェルター', titleStyle(34))
+      .text(GAME_WIDTH / 2, 26, 'まもって！シェルター', titleStyle(36))
       .setOrigin(0.5)
-      .setAlign('center')
       .setDepth(20);
 
-    this.countText = this.add
-      .text(LEFT_PANEL_X, 210, '', titleStyle(30))
-      .setOrigin(0.5)
-      .setAlign('center')
-      .setDepth(20);
+    this.countText = this.add.text(16, 62, '', bodyStyle(24)).setOrigin(0, 0).setDepth(20);
 
     this.heartText = this.add
-      .text(LEFT_PANEL_X, 300, '', titleStyle(34))
-      .setOrigin(0.5)
+      .text(GAME_WIDTH - 16, 58, '', titleStyle(30))
+      .setOrigin(1, 0)
       .setDepth(20);
 
     this.statusText = this.add
-      .text(LEFT_PANEL_X, 450, 'カメラを じゅんびちゅう...', bodyStyle(23))
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 130, 'カメラを じゅんびちゅう...', bodyStyle(22))
       .setOrigin(0.5)
-      .setAlign('center')
-      .setWordWrapWidth(310)
+      .setWordWrapWidth(GAME_WIDTH - 40)
       .setDepth(20);
 
     this.updateHud();
 
     const startButton = createButton(
       this,
-      RIGHT_PANEL_X,
-      210,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT - 62,
       'スタート！',
       () => this.beginShot(),
-      { width: 290, height: 96, fontSize: 32 },
+      { width: 250, height: 74, fontSize: 30 },
     );
     this.startLabel = startButton.getData('label') as Phaser.GameObjects.Text;
 
     createButton(
       this,
-      RIGHT_PANEL_X,
-      340,
+      118,
+      GAME_HEIGHT - 62,
       'カメラきりかえ',
       () => {
         playTap();
@@ -242,9 +232,9 @@ export class ShelterScene extends Phaser.Scene {
         });
       },
       {
-        width: 260,
-        height: 74,
-        fontSize: 25,
+        width: 212,
+        height: 62,
+        fontSize: 22,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
       },
@@ -252,17 +242,17 @@ export class ShelterScene extends Phaser.Scene {
 
     createButton(
       this,
-      RIGHT_PANEL_X,
-      445,
+      GAME_WIDTH - 86,
+      GAME_HEIGHT - 62,
       'やめる',
       () => {
         playTap();
         this.scene.start('Title');
       },
       {
-        width: 260,
-        height: 74,
-        fontSize: 25,
+        width: 142,
+        height: 62,
+        fontSize: 24,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
       },

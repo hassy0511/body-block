@@ -17,7 +17,7 @@ const SHOT_TIME_LIMIT_SEC = 5;
 /** カメラは左上に小さく浮かべる。水槽は画面全体。 */
 const CAM_X = 24;
 const CAM_Y = 24;
-const CAM_WIDTH = 380;
+const CAM_WIDTH = 340;
 const CAM_HEIGHT = Math.round((CAM_WIDTH * 9) / 16);
 
 /** 生き物の上限。超えたら古い順に消える(テクスチャも破棄する)。 */
@@ -135,18 +135,18 @@ export class ZukanScene extends Phaser.Scene {
 
     const callButton = createButton(
       this,
-      GAME_WIDTH - 160,
-      70,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT - 150,
       'なかまを よぶ',
       () => this.beginShot(),
-      { width: 280, height: 84, fontSize: 28 },
+      { width: 320, height: 90, fontSize: 30 },
     ).setDepth(20);
     this.callLabel = callButton.getData('label') as Phaser.GameObjects.Text;
 
     createButton(
       this,
-      GAME_WIDTH - 160,
-      166,
+      140,
+      GAME_HEIGHT - 56,
       'カメラきりかえ',
       () => {
         playTap();
@@ -156,7 +156,7 @@ export class ZukanScene extends Phaser.Scene {
         });
       },
       {
-        width: 250,
+        width: 240,
         height: 62,
         fontSize: 22,
         color: COLORS.accent,
@@ -166,15 +166,15 @@ export class ZukanScene extends Phaser.Scene {
 
     createButton(
       this,
-      GAME_WIDTH - 160,
-      242,
+      GAME_WIDTH - 110,
+      GAME_HEIGHT - 56,
       'やめる',
       () => {
         playTap();
         this.scene.start('Title');
       },
       {
-        width: 250,
+        width: 180,
         height: 62,
         fontSize: 22,
         color: COLORS.accent,
@@ -183,10 +183,10 @@ export class ZukanScene extends Phaser.Scene {
     ).setDepth(20);
 
     this.statusText = this.add
-      .text(GAME_WIDTH - 160, 330, 'カメラを じゅんびちゅう...', bodyStyle(22))
-      .setOrigin(0.5, 0)
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 240, 'カメラを じゅんびちゅう...', bodyStyle(22))
+      .setOrigin(0.5)
       .setAlign('center')
-      .setWordWrapWidth(300)
+      .setWordWrapWidth(GAME_WIDTH - 60)
       .setDepth(20);
   }
 

@@ -34,15 +34,15 @@ const SHOT_TIME_LIMIT_SEC = 8;
 const COL_WIDTH = 300;
 const CAM_WIDTH = COL_WIDTH;
 const CAM_X = Math.round((GAME_WIDTH - CAM_WIDTH) / 2);
-const CAM_Y = 36;
+const CAM_Y = 96;
 const CAM_HEIGHT = Math.round((CAM_WIDTH * 9) / 16);
 
 const ARENA_TOP = CAM_Y + CAM_HEIGHT;
-const FLOOR_Y = GAME_HEIGHT - 64;
+const FLOOR_Y = GAME_HEIGHT - 200;
 
 /** ふたり用の柱の左端。あか(P1)が左、あお(P2)が右。 */
-const LEFT_COL_X = 210;
-const RIGHT_COL_X = GAME_WIDTH - 210 - COL_WIDTH;
+const LEFT_COL_X = 40;
+const RIGHT_COL_X = GAME_WIDTH - 40 - COL_WIDTH;
 /** ひとり用はカメラの真下。 */
 const SOLO_COL_X = CAM_X;
 
@@ -278,31 +278,31 @@ export class BattleScene extends Phaser.Scene {
   // ---------- HUD ----------
 
   private buildHud(): void {
-    this.turnText = this.add.text(20, 24, '', titleStyle(30)).setOrigin(0, 0).setDepth(20);
-    this.shotsText = this.add.text(20, 78, '', bodyStyle(24)).setOrigin(0, 0).setDepth(20);
+    this.turnText = this.add.text(16, 20, '', titleStyle(30)).setOrigin(0, 0).setDepth(20);
+    this.shotsText = this.add.text(16, 70, '', bodyStyle(22)).setOrigin(0, 0).setDepth(20);
 
     this.statusText = this.add
-      .text(GAME_WIDTH / 2, ARENA_TOP + 90, '', bodyStyle(22))
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 130, '', bodyStyle(22))
       .setOrigin(0.5)
       .setAlign('center')
-      .setWordWrapWidth(300)
+      .setWordWrapWidth(GAME_WIDTH - 40)
       .setDepth(20);
     this.statusText.setText('カメラを じゅんびちゅう...');
 
     const startButton = createButton(
       this,
-      GAME_WIDTH - 130,
-      70,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT - 62,
       'スタート！',
       () => this.beginShot(),
-      { width: 220, height: 78, fontSize: 28 },
+      { width: 250, height: 74, fontSize: 30 },
     );
     this.startLabel = startButton.getData('label') as Phaser.GameObjects.Text;
 
     createButton(
       this,
-      GAME_WIDTH - 130,
-      160,
+      118,
+      GAME_HEIGHT - 62,
       'カメラきりかえ',
       () => {
         playTap();
@@ -315,9 +315,9 @@ export class BattleScene extends Phaser.Scene {
         });
       },
       {
-        width: 220,
-        height: 60,
-        fontSize: 20,
+        width: 212,
+        height: 62,
+        fontSize: 22,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
       },
@@ -325,17 +325,17 @@ export class BattleScene extends Phaser.Scene {
 
     createButton(
       this,
-      GAME_WIDTH - 130,
-      232,
+      GAME_WIDTH - 86,
+      GAME_HEIGHT - 62,
       'やめる',
       () => {
         playTap();
         this.scene.start('Title');
       },
       {
-        width: 220,
-        height: 60,
-        fontSize: 20,
+        width: 142,
+        height: 62,
+        fontSize: 24,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
       },

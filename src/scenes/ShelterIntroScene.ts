@@ -20,7 +20,7 @@ export class ShelterIntroScene extends Phaser.Scene {
   create(): void {
     addBackground(this);
 
-    this.add.text(GAME_WIDTH / 2, 70, 'まもって！シェルター', titleStyle(46)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 150, 'まもって！シェルター', titleStyle(44)).setOrigin(0.5);
 
     [
       'ゆかに いる たまごちゃんに',
@@ -29,18 +29,18 @@ export class ShelterIntroScene extends Phaser.Scene {
       'あたらないように まもろう！',
     ].forEach((line, index) => {
       this.add
-        .text(GAME_WIDTH / 2, 160 + index * 46, line, bodyStyle(26))
+        .text(GAME_WIDTH / 2, 290 + index * 60, line, bodyStyle(26))
         .setOrigin(0.5)
-        .setWordWrapWidth(GAME_WIDTH - 120);
+        .setWordWrapWidth(GAME_WIDTH - 60);
     });
 
-    this.add.text(GAME_WIDTH / 2, 380, 'なんにんで あそぶ？', bodyStyle(28)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 600, 'なんにんで あそぶ？', bodyStyle(28)).setOrigin(0.5);
 
     [1, 2, 3].forEach((count, index) => {
       createButton(
         this,
-        GAME_WIDTH / 2 + (index - 1) * 260,
-        480,
+        GAME_WIDTH / 2,
+        700 + index * 130,
         `${count}にん`,
         () => {
           playTap();
@@ -49,14 +49,14 @@ export class ShelterIntroScene extends Phaser.Scene {
           session.captureRequest = null;
           this.scene.start('Shelter');
         },
-        { width: 220, height: 100, fontSize: 36 },
+        { width: 300, height: 96, fontSize: 36 },
       );
     });
 
     createButton(
       this,
       GAME_WIDTH / 2,
-      GAME_HEIGHT - 60,
+      GAME_HEIGHT - 100,
       'もどる',
       () => {
         playTap();

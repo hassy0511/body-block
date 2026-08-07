@@ -2,14 +2,10 @@
 
 import Phaser from 'phaser';
 
-// 大きなモニター/テレビにつないで遊ぶ前提なので、横長を基準にする(CLAUDE.md §6)。
-// 全身を写すには端末から2〜3m離れる必要があり、スマホの画面では何も読めない。
-// 家庭にある大画面はほぼ横長なので、縦長基準だと左右が大きく余ってしまう。
-//
-// 上から下へ落ちるゲームは縦の余白が要るが、横長では取り合いになる。
-// 落ちものは画面中央に細い柱を立て、左右の余白を情報表示に使う。
-export const GAME_WIDTH = 1280;
-export const GAME_HEIGHT = 720;
+// 上から下へ落ちるゲームがあるため、縦長を基準にする。
+// 横向きでも FIT スケールで遊べる。
+export const GAME_WIDTH = 720;
+export const GAME_HEIGHT = 1280;
 
 export const COLORS = {
   bg: 0xfff3e0,

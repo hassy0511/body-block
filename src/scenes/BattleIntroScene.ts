@@ -21,7 +21,7 @@ export class BattleIntroScene extends Phaser.Scene {
   create(): void {
     addBackground(this);
 
-    this.add.text(GAME_WIDTH / 2, 70, 'こわしてバトル', titleStyle(46)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 150, 'こわしてバトル', titleStyle(44)).setOrigin(0.5);
 
     [
       'タワーの てっぺんに かんむりが のっているよ',
@@ -30,21 +30,21 @@ export class BattleIntroScene extends Phaser.Scene {
       'たちいちで ねらいを きめよう！',
     ].forEach((line, index) => {
       this.add
-        .text(GAME_WIDTH / 2, 160 + index * 46, line, bodyStyle(26))
+        .text(GAME_WIDTH / 2, 290 + index * 60, line, bodyStyle(26))
         .setOrigin(0.5)
-        .setWordWrapWidth(GAME_WIDTH - 120);
+        .setWordWrapWidth(GAME_WIDTH - 60);
     });
 
-    this.add.text(GAME_WIDTH / 2, 390, 'どっちで あそぶ？', bodyStyle(28)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 620, 'どっちで あそぶ？', bodyStyle(28)).setOrigin(0.5);
 
-    createButton(this, GAME_WIDTH / 2 - 190, 490, 'ひとりで', () => this.start(1), {
-      width: 300,
+    createButton(this, GAME_WIDTH / 2, 730, 'ひとりで', () => this.start(1), {
+      width: 320,
       height: 100,
       fontSize: 34,
     });
 
-    createButton(this, GAME_WIDTH / 2 + 190, 490, 'ふたりで', () => this.start(2), {
-      width: 300,
+    createButton(this, GAME_WIDTH / 2, 860, 'ふたりで', () => this.start(2), {
+      width: 320,
       height: 100,
       fontSize: 34,
       color: COLORS.accent,
@@ -54,7 +54,7 @@ export class BattleIntroScene extends Phaser.Scene {
     createButton(
       this,
       GAME_WIDTH / 2,
-      GAME_HEIGHT - 60,
+      GAME_HEIGHT - 100,
       'もどる',
       () => {
         playTap();

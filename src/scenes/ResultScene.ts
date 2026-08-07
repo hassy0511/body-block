@@ -25,28 +25,28 @@ export class ResultScene extends Phaser.Scene {
     const total = session.totalScore;
     const rank = overallRank(session.averageScore);
 
-    this.add.text(GAME_WIDTH / 2, 70, 'けっか はっぴょう！', titleStyle(44)).setOrigin(0.5);
+    this.add.text(GAME_WIDTH / 2, 150, 'けっか はっぴょう！', titleStyle(44)).setOrigin(0.5);
 
     // お題ごとの内訳
     results.forEach((result, index) => {
-      const y = 180 + index * 62;
-      this.add.text(300, y, `${index + 1}. ${result.theme.name}`, bodyStyle(30)).setOrigin(0, 0.5);
+      const y = 300 + index * 70;
+      this.add.text(60, y, `${index + 1}. ${result.theme.name}`, bodyStyle(30)).setOrigin(0, 0.5);
       this.add
-        .text(GAME_WIDTH - 300, y, `${result.judge.displayScore}てん`, bodyStyle(30))
+        .text(GAME_WIDTH - 60, y, `${result.judge.displayScore}てん`, bodyStyle(30))
         .setOrigin(1, 0.5);
     });
 
     if (results.length === 0) {
-      this.add.text(GAME_WIDTH / 2, 200, 'きろくが ありませんでした', bodyStyle(30)).setOrigin(0.5);
+      this.add.text(GAME_WIDTH / 2, 330, 'きろくが ありませんでした', bodyStyle(30)).setOrigin(0.5);
     }
 
     const maxScore = session.themeCount * 100;
     this.add
-      .text(GAME_WIDTH / 2, 410, `ごうけい ${total} / ${maxScore} てん`, titleStyle(40))
+      .text(GAME_WIDTH / 2, 600, `ごうけい ${total} / ${maxScore} てん`, titleStyle(40))
       .setOrigin(0.5);
 
     const rankText = this.add
-      .text(GAME_WIDTH / 2, 490, OVERALL_RANK_LABELS[rank], titleStyle(40))
+      .text(GAME_WIDTH / 2, 700, OVERALL_RANK_LABELS[rank], titleStyle(40))
       .setOrigin(0.5)
       .setScale(0.6);
 
@@ -60,29 +60,29 @@ export class ResultScene extends Phaser.Scene {
 
     createButton(
       this,
-      GAME_WIDTH / 2 - 220,
-      GAME_HEIGHT - 80,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT - 250,
       'もういちど',
       () => {
         playTap();
         this.scene.start('PlayerSelect');
       },
-      { width: 340, height: 76, fontSize: 30 },
+      { width: 380, height: 84, fontSize: 32 },
     );
 
     createButton(
       this,
-      GAME_WIDTH / 2 + 220,
-      GAME_HEIGHT - 80,
+      GAME_WIDTH / 2,
+      GAME_HEIGHT - 140,
       'タイトルへ',
       () => {
         playTap();
         this.scene.start('Title');
       },
       {
-        width: 340,
-        height: 76,
-        fontSize: 30,
+        width: 380,
+        height: 84,
+        fontSize: 32,
         color: COLORS.accent,
         pressedColor: COLORS.accentDark,
       },
