@@ -51,6 +51,16 @@ export class TitleScene extends Phaser.Scene {
       });
     });
 
+    // 2台接続(実験)への入口。プロトタイプ段階なので目立たせず、でも見つかる場所に
+    const pairLink = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 130, 'じっけんちゅう: 2だいで つなぐ →', bodyStyle(24))
+      .setOrigin(0.5)
+      .setColor('#209aa1')
+      .setInteractive({ useHandCursor: true });
+    pairLink.on('pointerup', () => {
+      window.location.href = 'pair.html';
+    });
+
     this.add
       .text(
         GAME_WIDTH / 2,
