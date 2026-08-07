@@ -134,6 +134,7 @@
       <p class="links">
         <a href="./">▶ ゲームをひらく</a>
         <a class="alt" href="./verify.html">切り抜き検証ページ</a>
+        <a class="alt" href="./pair.html">2台接続の実験</a>
       </p>
 
       <div class="progress">
@@ -317,6 +318,37 @@
             >動きがゆったりしている（激しく回転・加速しない）</span
           ></label
         >
+      </section>
+
+      <section>
+        <h2>6. 2台接続の実験 ★プロトタイプ</h2>
+        <p class="how">
+          pair.html（上のリンク）を2台のiPhone/iPadで開く。1台を「画面やく」、もう1台を「カメラやく」にしてQRを見せ合う。両方とも同じWi-Fiにつなぐこと。
+        </p>
+        <label class="check"
+          ><input type="checkbox" data-key="pair-connect" /><span
+            >QRを2回見せ合うと「つながった！」になり、カメラやくの映像が画面やくに映る</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="pair-host" /><span
+            >画面やくの統計表示に「経路: host (同一LAN直結)」と出る</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="pair-body" /><span
+            >カメラやくを2〜3m離して立てたとき、全身が画面やく側ではっきり見える</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="pair-stable" /><span
+            >5分ほど放置しても映像が止まらない（カメラやくの自動ロックはあらかじめ切っておく）</span
+          ></label
+        >
+        <div class="note">
+          つながらないとき:
+          2台が同じWi-Fiか確認。ルーターの「AP分離（プライバシーセパレーター）」が有効だと端末同士が通信できません。QRが読めないときは「コードを手で受け渡す」欄でメッセージアプリ経由でも接続できます。
+        </div>
       </section>
 
       <section>

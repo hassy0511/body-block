@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>2台接続の実験 - からだブロック凹凸 うつしてポン！</title>
+  </head>
+  <body>
+    <div id="pair-app">
+      <header>
+        <h1>2台接続の実験</h1>
+        <p class="subtitle">
+          1台をカメラ、もう1台を画面にする接続テスト。<br />
+          映像は同じWi-Fi内で端末から端末へ直接送ります。サーバーには送りません。
+        </p>
+      </header>
+
+      <!-- 役割えらび -->
+      <section id="role-select" class="panel">
+        <p>2台とも同じWi-Fiにつないでから、それぞれの役を選んでください。</p>
+        <div class="role-buttons">
+          <button id="role-screen" type="button" class="big">
+            画面やく になる<br /><small>手元に置く方。ここに映像が届く</small>
+          </button>
+          <button id="role-camera" type="button" class="big alt">
+            カメラやく になる<br /><small>離れた場所に立てる方</small>
+          </button>
+        </div>
+      </section>
+
+      <!-- 進行ステップ -->
+      <section id="flow" class="panel" hidden>
+        <p id="step-text" class="step"></p>
+
+        <div id="qr-area" hidden>
+          <canvas id="qr-canvas"></canvas>
+        </div>
+
+        <div id="scan-area" hidden>
+          <div class="scan-wrap">
+            <video id="scan-video" autoplay playsinline muted></video>
+            <div class="scan-frame"></div>
+          </div>
+        </div>
+
+        <div id="remote-area" hidden>
+          <video id="remote-video" autoplay playsinline></video>
+        </div>
+
+        <div id="local-area" hidden>
+          <video id="local-video" autoplay playsinline muted></video>
+          <p class="hint">この映像を送信中。端末を立てて、写したい場所へ向けてください。</p>
+        </div>
+
+        <div class="actions">
+          <button id="next-btn" type="button" hidden></button>
+          <button id="reset-btn" type="button" class="ghost">最初からやりなおす</button>
+        </div>
+
+        <details id="manual-details">
+          <summary>QRがうまく読めないとき（コードを手で受け渡す）</summary>
+          <p class="hint">
+            下のコードをメッセージアプリなどでもう1台へ送り、相手の「はりつけ」欄に入れてください。
+          </p>
+          <textarea
+            id="code-out"
+            readonly
+            rows="4"
+            placeholder="ここに自分のコードが出ます"
+          ></textarea>
+          <button id="copy-btn" type="button">コードをコピー</button>
+          <textarea id="code-in" rows="4" placeholder="相手のコードをここにはりつけ"></textarea>
+          <button id="paste-btn" type="button">はりつけたコードを使う</button>
+        </details>
+      </section>
+
+      <p id="status" class="status">じゅんびOK。役を選んでください。</p>
+      <pre id="stats" class="stats" hidden></pre>
+
+      <footer>
+        <a href="./check.html">チェックリストへもどる</a>
+      </footer>
+    </div>
+    <script type="module" src="/src/pair/main.ts"></script>
+  </body>
+</html>

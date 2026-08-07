@@ -12,6 +12,7 @@ export default defineConfig({
         main: `${root}index.html`,
         verify: `${root}verify.html`,
         themes: `${root}themes.html`,
+        pair: `${root}pair.html`,
       },
     },
   },
