@@ -55,12 +55,12 @@ export class CameraController {
 
     const remote = getRemoteStream();
     if (remote) {
-      // 鏡像で見せる(鏡の前に立つ感覚に合わせる。SPEC_PAIR.md §6)。
-      // facingMode を 'user' にしておけば、切り出し側の反転処理もそのまま効く
+      // 鏡像にしない。背面カメラで「離れた場所から人を写す」構図なので、
+      // テレビ中継と同じ見え方が自然。鏡像にしたら直感に反した(実機の感想)
       this.usingRemote = true;
-      this.currentFacingMode = 'user';
+      this.currentFacingMode = 'environment';
       this.videoEl.srcObject = remote;
-      this.videoEl.style.transform = 'scaleX(-1)';
+      this.videoEl.style.transform = 'none';
       await this.videoEl.play();
       return;
     }

@@ -6,6 +6,10 @@
 //   カメラやく: この端末はカメラになる。つながったら送信画面のまま
 //               立てて置いてもらう
 //
+// カメラの起動は役を選んだ直後に1回だけ行い、最後まで使い回す。
+// iOS は「あとからもう一度カメラを起動する」ときに固まりやすく、
+// 手順の途中で起動し直す作りだと実機で頻繁に詰まった。
+//
 // QR まわりは DOM のほうが圧倒的に楽なので、Phaser のシーンにはせず
 // キャンバスの上に重ねる素の DOM で作る。
 
@@ -47,8 +51,8 @@ const CSS = `
 #pair-overlay button.po-alt { background: #33bfc7; }
 #pair-overlay button.po-ghost { background: transparent; color: #d8c3a5; text-decoration: underline; font-weight: normal; }
 #pair-overlay canvas.po-qr { background: #fff; padding: 8px; border-radius: 10px; max-width: 78vw; }
-#pair-overlay .po-video-box { position: relative; width: min(78vw, 360px); border-radius: 12px; overflow: hidden; }
-#pair-overlay .po-video-box video { display: block; width: 100%; }
+#pair-overlay .po-video-box { position: relative; width: min(78vw, 360px); border-radius: 12px; overflow: hidden; background: #20242b; }
+#pair-overlay .po-video-box video { display: block; width: 100%; max-height: 42vh; object-fit: contain; }
 #pair-overlay .po-video-box .po-frame {
   position: absolute; inset: 12%; border: 3px dashed rgba(255,255,255,0.85);
   border-radius: 12px; pointer-events: none;
@@ -135,10 +139,10 @@ export function openPairOverlay(): Promise<boolean> {
 
     let role: Role | null = null;
     let pc: RTCPeerConnection | null = null;
-    let scanStream: MediaStream | null = null;
-    let sendStream: MediaStream | null = null;
-    let scanTimer: number | null = null;
-    let scanToken = 0;
+    /** 役選択の直後に起動し、最後まで使い回すカメラ。 */
+    let cameraStream: MediaStream | null = null;
+    let decodeTimer: number | null = null;
+    let decodeToken = 0;
     let remoteStream: MediaStream | null = null;
     let settled = false;
 
@@ -150,54 +154,36 @@ export function openPairOverlay(): Promise<boolean> {
     const errText = (error: unknown): string =>
       error instanceof Error ? `${error.name}: ${error.message}` : String(error);
 
-    const stopScan = (): void => {
-      // 起動待ちの getUserMedia があっても、戻ってきた時点で捨てられるようにする
-      scanToken += 1;
-      if (scanTimer !== null) clearTimeout(scanTimer);
-      scanTimer = null;
-      scanStream?.getTracks().forEach((track) => track.stop());
-      scanStream = null;
-      scanBox.hidden = true;
-    };
-
-    /**
-     * オーバーレイを閉じる。
-     * がめんやく で接続できたときだけ true。カメラやく はこの端末では
-     * ゲームを進めないので、どう閉じても false(接続の後始末だけ行う)。
-     */
-    const finish = (screenConnected: boolean): void => {
-      if (settled) return;
-      settled = true;
-      stopScan();
-      if (!screenConnected) {
-        pc?.close();
-        sendStream?.getTracks().forEach((track) => track.stop());
-      }
-      root.remove();
-      resolve(screenConnected);
-    };
-
-    const startScan = async (onPayload: (payload: SignalPayload) => void): Promise<void> => {
-      const token = ++scanToken;
-      // 固まったら時間ぎれにして「もういちど」を出す(iPad実機で発生した)
-      const stream = await getCameraWithTimeout({
+    /** カメラを1回だけ起動する。固まったら時間ぎれ(iPad実機で発生)。 */
+    const acquireCamera = async (): Promise<MediaStream> => {
+      if (cameraStream) return cameraStream;
+      setStatus('カメラを じゅんびしています...');
+      cameraStream = await getCameraWithTimeout({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
-      // 待っている間に stopScan された(コードが手ではりつけられた等)なら捨てる
-      if (token !== scanToken) {
-        stream.getTracks().forEach((track) => track.stop());
-        return;
-      }
-      scanStream = stream;
-      scanVideo.srcObject = scanStream;
-      await scanVideo.play();
+      scanVideo.srcObject = cameraStream;
+      await scanVideo.play().catch(() => undefined);
+      return cameraStream;
+    };
+
+    const stopDecoding = (): void => {
+      decodeToken += 1;
+      if (decodeTimer !== null) clearTimeout(decodeTimer);
+      decodeTimer = null;
+      scanBox.hidden = true;
+    };
+
+    /** 起動ずみのカメラで QR を読み続ける。 */
+    const beginDecoding = (onPayload: (payload: SignalPayload) => void): void => {
+      if (!cameraStream) return;
+      const token = ++decodeToken;
       scanBox.hidden = false;
 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       const tick = async (): Promise<void> => {
-        if (!scanStream || !ctx) return;
+        if (token !== decodeToken || !ctx) return;
         if (scanVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
           canvas.width = scanVideo.videoWidth;
           canvas.height = scanVideo.videoHeight;
@@ -208,20 +194,20 @@ export function openPairOverlay(): Promise<boolean> {
           });
           if (found?.data) {
             const payload = await decodeSignal(found.data);
-            if (payload) {
-              stopScan();
+            if (payload && token === decodeToken) {
+              stopDecoding();
               onPayload(payload);
               return;
             }
           }
         }
-        scanTimer = window.setTimeout(() => void tick(), 120);
+        decodeTimer = window.setTimeout(() => void tick(), 120);
       };
       void tick();
     };
 
-    /** 読み取りに失敗したとき、アプリ再起動なしでやりなおせるようにする */
-    const offerScanRetry = (error: unknown, retry: () => void): void => {
+    /** カメラ起動に失敗したとき、アプリ再起動なしでやりなおせるようにする。 */
+    const offerCameraRetry = (error: unknown, retry: () => void): void => {
       setStatus(
         `カメラをつかえませんでした (${errText(error)})。` +
           'もういちど おすか、下のコード欄をつかってね。',
@@ -235,13 +221,31 @@ export function openPairOverlay(): Promise<boolean> {
       };
     };
 
+    /**
+     * オーバーレイを閉じる。
+     * がめんやく で接続できたときだけ true。それ以外はカメラも接続も片づける。
+     */
+    const finish = (screenConnected: boolean): void => {
+      if (settled) return;
+      settled = true;
+      stopDecoding();
+      if (!screenConnected) {
+        pc?.close();
+        cameraStream?.getTracks().forEach((track) => track.stop());
+      } else {
+        // がめんやくは自分のカメラをもう使わない(映像はカメラやくから届く)
+        cameraStream?.getTracks().forEach((track) => track.stop());
+      }
+      root.remove();
+      resolve(screenConnected);
+    };
+
     const showQr = async (code: string): Promise<void> => {
       await QRCode.toCanvas(qrCanvas, code, { errorCorrectionLevel: 'L', margin: 2, scale: 4 });
       qrCanvas.hidden = false;
       outArea.value = code;
     };
 
-    // 手動コード欄(QRの代替)。役に応じて同じ受け口に流す
     const handlePayload = (payload: SignalPayload): void => {
       if (role === 'screen') {
         void acceptAnswer(payload).catch((error) =>
@@ -269,6 +273,19 @@ export function openPairOverlay(): Promise<boolean> {
       role = 'screen';
       rolesBox.hidden = true;
       manualBox.hidden = false;
+
+      // 先にカメラを起動して持っておく。②の段階で起動し直す作りだと
+      // iOS で固まることがあった。失敗しても QR 表示は続ける(手動コードで代替できる)
+      try {
+        await acquireCamera();
+      } catch (error) {
+        setStatus(
+          `カメラを じゅんびできませんでした (${errText(error)})。` +
+            'あとで「②よみとる」の やりなおしが できます。',
+          true,
+        );
+      }
+      scanBox.hidden = true;
 
       pc = new RTCPeerConnection();
       pc.addEventListener('track', (event) => {
@@ -302,8 +319,18 @@ export function openPairOverlay(): Promise<boolean> {
       const beginScanStep = (): void => {
         qrCanvas.hidden = true;
         stepEl.textContent = '② カメラやくの端末に出た QR を うつしてね';
-        setStatus('QRをさがしています...');
-        void startScan(handlePayload).catch((error) => offerScanRetry(error, beginScanStep));
+        if (cameraStream) {
+          setStatus('QRをさがしています...');
+          beginDecoding(handlePayload);
+          return;
+        }
+        // 前もっての起動に失敗していた場合はここで再挑戦
+        void acquireCamera()
+          .then(() => {
+            setStatus('QRをさがしています...');
+            beginDecoding(handlePayload);
+          })
+          .catch((error) => offerCameraRetry(error, beginScanStep));
       };
       nextBtn.onclick = () => {
         nextBtn.hidden = true;
@@ -314,7 +341,7 @@ export function openPairOverlay(): Promise<boolean> {
     const acceptAnswer = async (payload: SignalPayload): Promise<void> => {
       if (!pc || payload.kind !== 'a') {
         setStatus('それは がめんやくのQRみたい。カメラやくの端末のQRをよんでね。', true);
-        void startScan(handlePayload).catch(() => undefined);
+        if (cameraStream) beginDecoding(handlePayload);
         return;
       }
       await pc.setRemoteDescription({ type: 'answer', sdp: payload.sdp });
@@ -330,9 +357,13 @@ export function openPairOverlay(): Promise<boolean> {
       manualBox.hidden = false;
 
       const beginScanStep = (): void => {
-        stepEl.textContent = '① がめんやくの端末に出ている QR を うつしてね';
-        setStatus('QRをさがしています...');
-        void startScan(handlePayload).catch((error) => offerScanRetry(error, beginScanStep));
+        void acquireCamera()
+          .then(() => {
+            stepEl.textContent = '① がめんやくの端末に出ている QR を うつしてね';
+            setStatus('QRをさがしています...');
+            beginDecoding(handlePayload);
+          })
+          .catch((error) => offerCameraRetry(error, beginScanStep));
       };
       beginScanStep();
     };
@@ -340,19 +371,18 @@ export function openPairOverlay(): Promise<boolean> {
     const acceptOffer = async (payload: SignalPayload): Promise<void> => {
       if (payload.kind !== 'o') {
         setStatus('それは カメラやくのQRみたい。がめんやくの端末のQRをよんでね。', true);
-        void startScan(handlePayload).catch(() => undefined);
+        if (cameraStream) beginDecoding(handlePayload);
         return;
       }
-      setStatus('カメラを起動しています...');
 
-      // 立てて使うので背面カメラ。固まったら時間ぎれにする
-      sendStream = await getCameraWithTimeout({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
+      // QR読み取りに使ったカメラを、そのまま送信にも使う。
+      // ここで起動し直すと iOS で固まることがあった。
+      // 手動コード経路などでまだ無ければ、ここで起動する
+      const stream = cameraStream ?? (await acquireCamera());
+      scanBox.hidden = true;
 
       pc = new RTCPeerConnection();
-      for (const track of sendStream.getTracks()) pc.addTrack(track, sendStream);
+      for (const track of stream.getTracks()) pc.addTrack(track, stream);
       pc.addEventListener('connectionstatechange', () => {
         if (!pc) return;
         if (pc.connectionState === 'connected') onCameraConnected();
@@ -380,10 +410,10 @@ export function openPairOverlay(): Promise<boolean> {
       manualBox.hidden = true;
       stepEl.textContent = 'つながった！ この端末は カメラになったよ';
       setStatus(
-        'この端末を立てて、あそぶ場所へむけてね。' +
+        'この端末を立てて、あそぶ場所へむけてね。よこ置きにすると がめん側の画面いっぱいに写るよ。' +
           '画面はつけたままに（じどうロックは切っておいてね）',
       );
-      localVideo.srcObject = sendStream;
+      localVideo.srcObject = cameraStream;
       void localVideo.play().catch(() => undefined);
       localBox.hidden = false;
       closeBtn.textContent = 'そうしんを やめる';
@@ -418,7 +448,7 @@ export function openPairOverlay(): Promise<boolean> {
           setStatus('コードのかたちが ちがうみたい。ぜんぶコピーできてる？', true);
           return;
         }
-        stopScan();
+        stopDecoding();
         handlePayload(payload);
       })();
     });
@@ -442,7 +472,7 @@ export function openPairOverlay(): Promise<boolean> {
         feedCode: async (text: string) => {
           const payload = await decodeSignal(text);
           if (payload) {
-            stopScan();
+            stopDecoding();
             handlePayload(payload);
           }
         },
