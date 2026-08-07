@@ -9,6 +9,8 @@ import {
   GAME_HEIGHT,
 } from '../ui/ui';
 import { playTap, unlockAudio } from '../core/sound';
+import { isRemoteActive, disconnectRemote } from '../core/remoteCamera';
+import { openPairOverlay } from '../game/pairOverlay';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -51,14 +53,34 @@ export class TitleScene extends Phaser.Scene {
       });
     });
 
-    // 2台接続(実験)への入口。プロトタイプ段階なので目立たせず、でも見つかる場所に
+    // 2台モードへの入口。この端末が「画面やく」になり、
+    // カメラやく端末(pair.html)の映像で全モードが遊べるようになる
     const pairLink = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 130, 'じっけんちゅう: 2だいで つなぐ →', bodyStyle(24))
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 130, '', bodyStyle(24))
       .setOrigin(0.5)
       .setColor('#209aa1')
       .setInteractive({ useHandCursor: true });
+
+    const refreshPairLink = (): void => {
+      pairLink.setText(
+        isRemoteActive()
+          ? '📡 2だいモードで あそびちゅう (タップで きる)'
+          : '2だいで つなぐ (もう1だいを カメラにする) →',
+      );
+    };
+    refreshPairLink();
+
     pairLink.on('pointerup', () => {
-      window.location.href = 'pair.html';
+      playTap();
+      if (isRemoteActive()) {
+        disconnectRemote();
+        refreshPairLink();
+        return;
+      }
+      void openPairOverlay().then((connected) => {
+        refreshPairLink();
+        if (connected) unlockAudio();
+      });
     });
 
     this.add
