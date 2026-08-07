@@ -91,5 +91,11 @@ export class TitleScene extends Phaser.Scene {
         bodyStyle(22),
       )
       .setOrigin(0.5);
+
+    // 表示中の版。キャッシュが古い端末をすぐ見分けるためのもの
+    this.add
+      .text(GAME_WIDTH - 8, GAME_HEIGHT - 6, `v ${__BUILD_ID__}`, bodyStyle(14))
+      .setOrigin(1, 1)
+      .setAlpha(0.55);
   }
 }

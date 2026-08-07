@@ -146,6 +146,9 @@ export function openPairOverlay(): Promise<boolean> {
       statusEl.classList.toggle('error', isError);
     };
 
+    const errText = (error: unknown): string =>
+      error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+
     const stopScan = (): void => {
       // 起動待ちの getUserMedia があっても、戻ってきた時点で捨てられるようにする
       scanToken += 1;
@@ -223,8 +226,10 @@ export function openPairOverlay(): Promise<boolean> {
 
     // 手動コード欄(QRの代替)。役に応じて同じ受け口に流す
     const handlePayload = (payload: SignalPayload): void => {
-      if (role === 'screen') void acceptAnswer(payload);
-      else if (role === 'camera') void acceptOffer(payload);
+      const fail = (error: unknown): void =>
+        setStatus(`せつぞくしょりに しっぱいしました (${errText(error)})`, true);
+      if (role === 'screen') void acceptAnswer(payload).catch(fail);
+      else if (role === 'camera') void acceptOffer(payload).catch(fail);
     };
 
     // ---------- がめんやく ----------
@@ -268,8 +273,11 @@ export function openPairOverlay(): Promise<boolean> {
         qrCanvas.hidden = true;
         stepEl.textContent = '② カメラやくの端末に出た QR を うつしてね';
         setStatus('QRをさがしています...');
-        void startScan(handlePayload).catch(() => {
-          setStatus('カメラをつかえませんでした。下のコード欄をつかってね。', true);
+        void startScan(handlePayload).catch((error) => {
+          setStatus(
+            `カメラをつかえませんでした (${errText(error)})。下のコード欄をつかってね。`,
+            true,
+          );
         });
       };
     };
@@ -294,8 +302,11 @@ export function openPairOverlay(): Promise<boolean> {
 
       stepEl.textContent = '① がめんやくの端末に出ている QR を うつしてね';
       setStatus('QRをさがしています...');
-      await startScan(handlePayload).catch(() => {
-        setStatus('カメラをつかえませんでした。下のコード欄をつかってね。', true);
+      await startScan(handlePayload).catch((error) => {
+        setStatus(
+          `カメラをつかえませんでした (${errText(error)})。下のコード欄をつかってね。`,
+          true,
+        );
       });
     };
 
@@ -360,13 +371,13 @@ export function openPairOverlay(): Promise<boolean> {
     // ---------- 入口まわり ----------
 
     $('po-role-screen').addEventListener('click', () => {
-      void startScreenRole().catch(() =>
-        setStatus('じゅんびに しっぱいしました。とじて やりなおしてね。', true),
+      void startScreenRole().catch((error) =>
+        setStatus(`じゅんびに しっぱいしました (${errText(error)})`, true),
       );
     });
     $('po-role-camera').addEventListener('click', () => {
-      void startCameraRole().catch(() =>
-        setStatus('じゅんびに しっぱいしました。とじて やりなおしてね。', true),
+      void startCameraRole().catch((error) =>
+        setStatus(`じゅんびに しっぱいしました (${errText(error)})`, true),
       );
     });
     closeBtn.addEventListener('click', () => finish(false));

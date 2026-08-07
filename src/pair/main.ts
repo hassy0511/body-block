@@ -53,6 +53,20 @@ function setStatus(message: string, isError = false): void {
   statusEl.classList.toggle('error', isError);
 }
 
+/** エラーの中身を人が読める形に。口頭で伝えてもらうときの手がかりになる */
+function errText(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  return String(error);
+}
+
+// 想定外のエラーも必ず画面に出す(実機では開発者ツールを開けない)
+window.addEventListener('error', (event) => {
+  setStatus(`エラー: ${event.message}`, true);
+});
+window.addEventListener('unhandledrejection', (event) => {
+  setStatus(`エラー: ${errText(event.reason)}`, true);
+});
+
 function setStep(message: string): void {
   stepText.textContent = message;
 }
@@ -180,8 +194,11 @@ async function startScreenRole(): Promise<void> {
     qrArea.hidden = true;
     setStep('② カメラやくの端末に出ているQRを写してください');
     setStatus('QRをさがしています...');
-    void scanQr(handlePayload).catch(() => {
-      setStatus('カメラを使えませんでした。下の手動コード欄を使ってください。', true);
+    void scanQr(handlePayload).catch((error) => {
+      setStatus(
+        `カメラを使えませんでした (${errText(error)})。下の手動コード欄を使ってください。`,
+        true,
+      );
     });
   };
 }
@@ -202,8 +219,11 @@ async function startCameraRole(): Promise<void> {
 
   setStep('① 画面やくの端末に出ているQRを写してください');
   setStatus('QRをさがしています...');
-  await scanQr(handlePayload).catch(() => {
-    setStatus('カメラを使えませんでした。下の手動コード欄を使ってください。', true);
+  await scanQr(handlePayload).catch((error) => {
+    setStatus(
+      `カメラを使えませんでした (${errText(error)})。下の手動コード欄を使ってください。`,
+      true,
+    );
   });
 }
 
@@ -234,10 +254,12 @@ async function acceptOffer(payload: SignalPayload): Promise<void> {
 // ---------- 受け取ったコードの振り分け ----------
 
 function handlePayload(payload: SignalPayload): void {
+  const fail = (error: unknown): void =>
+    setStatus(`接続処理に失敗しました (${errText(error)})`, true);
   if (role === 'screen' && payload.kind === 'a') {
-    void acceptAnswer(payload);
+    void acceptAnswer(payload).catch(fail);
   } else if (role === 'camera' && payload.kind === 'o') {
-    void acceptOffer(payload);
+    void acceptOffer(payload).catch(fail);
   } else {
     setStatus(
       payload.kind === 'o'
@@ -310,6 +332,10 @@ async function updateStats(): Promise<void> {
 }
 
 // ---------- 入口 ----------
+
+document
+  .querySelector('footer')
+  ?.insertAdjacentHTML('beforeend', ` <span>v ${__BUILD_ID__}</span>`);
 
 if (!('RTCPeerConnection' in window) || !('CompressionStream' in window)) {
   setStatus(
