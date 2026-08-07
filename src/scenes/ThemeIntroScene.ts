@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import {
   addBackground,
+  addQuitLink,
   createButton,
   titleStyle,
   bodyStyle,
@@ -30,6 +31,8 @@ export class ThemeIntroScene extends Phaser.Scene {
       this.scene.start('Result');
       return;
     }
+
+    addQuitLink(this, () => playTap());
 
     this.add
       .text(

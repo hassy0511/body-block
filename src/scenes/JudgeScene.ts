@@ -9,6 +9,7 @@ import { playFanfare, playTap } from '../core/sound';
 import { session } from '../game/session';
 import {
   addBackground,
+  addQuitLink,
   createButton,
   titleStyle,
   bodyStyle,
@@ -34,6 +35,8 @@ export class JudgeScene extends Phaser.Scene {
       this.scene.start('Result');
       return;
     }
+
+    addQuitLink(this, () => playTap());
 
     const judge = judgePose(playerMask, theme.mask);
     // 記録を更新する前のベストを控えておく(「こうしん！」の判定に使う)

@@ -117,6 +117,22 @@ export function createButton(
 }
 
 /** 画面全体の背景。全シーンで共通の下地にする。 */
+/**
+ * 画面の左上に置く「タイトルへ戻る」リンク。
+ * どの画面からでも抜けられるようにする(途中で戻れないと詰まる)。
+ */
+export function addQuitLink(scene: Phaser.Scene, onBeforeLeave?: () => void): void {
+  const link = scene.add
+    .text(14, 12, '← タイトルへ', bodyStyle(22))
+    .setColor('#209aa1')
+    .setDepth(40)
+    .setInteractive({ useHandCursor: true });
+  link.on('pointerup', () => {
+    onBeforeLeave?.();
+    scene.scene.start('Title');
+  });
+}
+
 export function addBackground(scene: Phaser.Scene): void {
   scene.cameras.main.setBackgroundColor(COLORS.bgCss);
 }

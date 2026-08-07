@@ -69,6 +69,68 @@ export function computeCoverRect(
   return { sx: 0, sy: (sourceHeight - sh) / 2, sw: sourceWidth, sh };
 }
 
+export interface DrawLayout {
+  sx: number;
+  sy: number;
+  sw: number;
+  sh: number;
+  dx: number;
+  dy: number;
+  dw: number;
+  dh: number;
+}
+
+/**
+ * 映像を枠へどう描くかを決める。
+ *
+ * 枠と映像の比率が近ければ cover(枠いっぱい・はみ出しは切る)。
+ * 大きく違うとき(縦持ち端末の映像を横長の枠に入れる2台モードなど)は
+ * contain(全体を収めて余白を出す)。cover のままだと上下が大きく捨てられ、
+ * 視野が細い帯になってしまう(実機で発生した)。
+ */
+export function computeDrawLayout(
+  sourceWidth: number,
+  sourceHeight: number,
+  boxWidth: number,
+  boxHeight: number,
+): DrawLayout {
+  if (sourceWidth === 0 || sourceHeight === 0) {
+    return {
+      sx: 0,
+      sy: 0,
+      sw: sourceWidth,
+      sh: sourceHeight,
+      dx: 0,
+      dy: 0,
+      dw: boxWidth,
+      dh: boxHeight,
+    };
+  }
+
+  const sourceAspect = sourceWidth / sourceHeight;
+  const boxAspect = boxWidth / boxHeight;
+  const mismatch = Math.max(sourceAspect, boxAspect) / Math.min(sourceAspect, boxAspect);
+
+  if (mismatch <= 1.5) {
+    const crop = computeCoverRect(sourceWidth, sourceHeight, boxWidth, boxHeight);
+    return { ...crop, dx: 0, dy: 0, dw: boxWidth, dh: boxHeight };
+  }
+
+  const scale = Math.min(boxWidth / sourceWidth, boxHeight / sourceHeight);
+  const dw = sourceWidth * scale;
+  const dh = sourceHeight * scale;
+  return {
+    sx: 0,
+    sy: 0,
+    sw: sourceWidth,
+    sh: sourceHeight,
+    dx: (boxWidth - dw) / 2,
+    dy: (boxHeight - dh) / 2,
+    dw,
+    dh,
+  };
+}
+
 /** カメラ表示の深さ。ゲーム側の背景より手前になるようにする。 */
 export const PANEL_DEPTH = 10;
 
@@ -267,19 +329,33 @@ export class CameraPanel {
   private drawVideoFrame(): void {
     if (!this.videoEl || !this.camera) return;
     const ctx = this.videoTexture.getContext();
-    const crop = computeCoverRect(
+    const layout = computeDrawLayout(
       this.videoEl.videoWidth,
       this.videoEl.videoHeight,
       this.width,
       this.height,
     );
 
+    // contain のときに出る余白は暗く塗る
+    ctx.fillStyle = '#20242b';
+    ctx.fillRect(0, 0, this.width, this.height);
+
     ctx.save();
     if (this.camera.facingMode === 'user') {
       ctx.translate(this.width, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(this.videoEl, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, this.width, this.height);
+    ctx.drawImage(
+      this.videoEl,
+      layout.sx,
+      layout.sy,
+      layout.sw,
+      layout.sh,
+      layout.dx,
+      layout.dy,
+      layout.dw,
+      layout.dh,
+    );
     ctx.restore();
     this.videoTexture.refresh();
   }
@@ -355,10 +431,11 @@ export class CameraPanel {
       return;
     }
 
-    // プレビューと同じ範囲・同じ向きで切り出し、見えていた画がそのまま使われるようにする
-    const crop = computeCoverRect(sourceWidth, sourceHeight, this.width, this.height);
-    const width = Math.round(crop.sw);
-    const height = Math.round(crop.sh);
+    // プレビューと同じ構図で、枠と同じ比率の高解像度キャンバスに描く。
+    // 「見えていた画がそのまま判定に使われる」を、contain の余白ごと保つ
+    const width = 1280;
+    const height = Math.round((width * this.height) / this.width);
+    const layout = computeDrawLayout(sourceWidth, sourceHeight, width, height);
 
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -369,11 +446,23 @@ export class CameraPanel {
       return;
     }
 
+    ctx.fillStyle = '#20242b';
+    ctx.fillRect(0, 0, width, height);
     if (this.camera.facingMode === 'user') {
       ctx.translate(width, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(this.videoEl, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
+    ctx.drawImage(
+      this.videoEl,
+      layout.sx,
+      layout.sy,
+      layout.sw,
+      layout.sh,
+      layout.dx,
+      layout.dy,
+      layout.dw,
+      layout.dh,
+    );
 
     const result = segmenter.segment(canvas, this.nextTimestamp());
     const mask = result.categoryMask;

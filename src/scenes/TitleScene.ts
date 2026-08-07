@@ -66,7 +66,7 @@ export class TitleScene extends Phaser.Scene {
       pairLink.setText(
         isRemoteActive()
           ? '📡 2だいモードで あそびちゅう (タップで きる)'
-          : '2だいで つなぐ (もう1だいを カメラにする) →',
+          : '2だいで つなぐ（カメラやく／がめんやく）→',
       );
     };
     refreshPairLink();

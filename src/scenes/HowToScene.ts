@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import {
   addBackground,
+  addQuitLink,
   createButton,
   titleStyle,
   bodyStyle,
@@ -26,6 +27,7 @@ export class HowToScene extends Phaser.Scene {
 
   create(): void {
     addBackground(this);
+    addQuitLink(this, () => playTap());
 
     this.add.text(GAME_WIDTH / 2, 150, 'あそびかた', titleStyle(44)).setOrigin(0.5);
 

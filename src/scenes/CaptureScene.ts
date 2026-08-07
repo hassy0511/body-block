@@ -12,6 +12,7 @@ import { CameraPanel, PANEL_DEPTH, type CapturedFrame } from '../game/cameraPane
 import { drawThemeHole, drawThemeSilhouette } from '../game/themeDraw';
 import {
   addBackground,
+  addQuitLink,
   createButton,
   titleStyle,
   bodyStyle,
@@ -65,10 +66,12 @@ export class CaptureScene extends Phaser.Scene {
     this.busy = false;
     this.fitText = null;
 
+    addQuitLink(this, () => playTap());
+
     this.add
-      .text(GAME_WIDTH / 2, 46, request.headline, bodyStyle(30))
+      .text(GAME_WIDTH / 2, 52, request.headline, bodyStyle(28))
       .setOrigin(0.5)
-      .setWordWrapWidth(GAME_WIDTH - 40);
+      .setWordWrapWidth(GAME_WIDTH - 260);
 
     this.panel = new CameraPanel(this, {
       x: CAM_X,
