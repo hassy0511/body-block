@@ -29,6 +29,15 @@ function show(title: string, detail: string): void {
     document.body.appendChild(box);
   }
   box.textContent = `${title}\n${detail}`;
+
+  // 出しっぱなしだと直った後の画面まで覆ってしまうので、閉じられるようにする
+  const close = document.createElement('button');
+  close.textContent = '× とじる';
+  close.style.cssText =
+    'display:block;margin-top:8px;padding:6px 16px;border:none;border-radius:8px;' +
+    'background:#fff;color:#7a1414;font-weight:bold;cursor:pointer;font-family:inherit';
+  close.addEventListener('click', () => box?.remove());
+  box.appendChild(close);
 }
 
 export function installErrorOverlay(): void {

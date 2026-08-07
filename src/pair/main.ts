@@ -12,6 +12,7 @@
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
 import { encodeSignal, decodeSignal, waitForIceComplete, type SignalPayload } from './signalCode';
+import { getCameraWithTimeout } from './cameraTimeout';
 import './style.css';
 
 type Role = 'screen' | 'camera';
@@ -104,7 +105,7 @@ async function showQr(text: string): Promise<void> {
 /** カメラで QR を読み続ける。読めたら止めて返す。 */
 async function scanQr(onDecoded: (payload: SignalPayload) => void): Promise<void> {
   // QR 読み取りは背面カメラのほうが向けやすい
-  scanStream = await navigator.mediaDevices.getUserMedia({
+  scanStream = await getCameraWithTimeout({
     video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
     audio: false,
   });
@@ -231,7 +232,7 @@ async function acceptOffer(payload: SignalPayload): Promise<void> {
   setStatus('カメラを起動しています...');
 
   // QR読み取りに使った背面カメラをそのまま送信にも使う
-  sendStream = await navigator.mediaDevices.getUserMedia({
+  sendStream = await getCameraWithTimeout({
     video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
     audio: false,
   });

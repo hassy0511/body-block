@@ -71,6 +71,9 @@ export class ZukanScene extends Phaser.Scene {
     });
 
     void this.panel.start().then((ok) => {
+      // カメラ起動が返ってくる前にシーンを離れていたら何もしない。
+      // 破棄ずみのテキストへ書き込むと例外になる(実機で発生した)
+      if (!this.statusText.scene) return;
       this.statusText.setText(
         ok
           ? '「なかまを よぶ」で さつえい！\nうつった すがたが およぎだすよ'

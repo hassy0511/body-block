@@ -89,6 +89,9 @@ export class CaptureScene extends Phaser.Scene {
     this.buildControls();
 
     void this.panel.start().then((ok) => {
+      // カメラ起動が返ってくる前にシーンを離れていたら何もしない。
+      // 破棄ずみのテキストへ書き込むと例外になる(実機で発生した)
+      if (!this.statusText.scene) return;
       this.statusText.setText(
         ok
           ? `「スタート！」を おしてから ${this.request.timeLimitSec}びょう。あなに からだを あわせてね`

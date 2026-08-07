@@ -18,6 +18,7 @@ import {
   type SignalPayload,
 } from '../pair/signalCode';
 import { setRemotePair } from '../core/remoteCamera';
+import { getCameraWithTimeout } from '../pair/cameraTimeout';
 
 const STYLE_ID = 'pair-overlay-style';
 
@@ -178,7 +179,8 @@ export function openPairOverlay(): Promise<boolean> {
 
     const startScan = async (onPayload: (payload: SignalPayload) => void): Promise<void> => {
       const token = ++scanToken;
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // 固まったら時間ぎれにして「もういちど」を出す(iPad実機で発生した)
+      const stream = await getCameraWithTimeout({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
@@ -218,6 +220,21 @@ export function openPairOverlay(): Promise<boolean> {
       void tick();
     };
 
+    /** 読み取りに失敗したとき、アプリ再起動なしでやりなおせるようにする */
+    const offerScanRetry = (error: unknown, retry: () => void): void => {
+      setStatus(
+        `カメラをつかえませんでした (${errText(error)})。` +
+          'もういちど おすか、下のコード欄をつかってね。',
+        true,
+      );
+      nextBtn.textContent = 'もういちど カメラを ためす';
+      nextBtn.hidden = false;
+      nextBtn.onclick = () => {
+        nextBtn.hidden = true;
+        retry();
+      };
+    };
+
     const showQr = async (code: string): Promise<void> => {
       await QRCode.toCanvas(qrCanvas, code, { errorCorrectionLevel: 'L', margin: 2, scale: 4 });
       qrCanvas.hidden = false;
@@ -226,10 +243,24 @@ export function openPairOverlay(): Promise<boolean> {
 
     // 手動コード欄(QRの代替)。役に応じて同じ受け口に流す
     const handlePayload = (payload: SignalPayload): void => {
-      const fail = (error: unknown): void =>
-        setStatus(`せつぞくしょりに しっぱいしました (${errText(error)})`, true);
-      if (role === 'screen') void acceptAnswer(payload).catch(fail);
-      else if (role === 'camera') void acceptOffer(payload).catch(fail);
+      if (role === 'screen') {
+        void acceptAnswer(payload).catch((error) =>
+          setStatus(`せつぞくしょりに しっぱいしました (${errText(error)})`, true),
+        );
+      } else if (role === 'camera') {
+        const tryAccept = (): void => {
+          void acceptOffer(payload).catch((error) => {
+            setStatus(`せつぞくしょりに しっぱいしました (${errText(error)})`, true);
+            nextBtn.textContent = 'もういちど ためす';
+            nextBtn.hidden = false;
+            nextBtn.onclick = () => {
+              nextBtn.hidden = true;
+              tryAccept();
+            };
+          });
+        };
+        tryAccept();
+      }
     };
 
     // ---------- がめんやく ----------
@@ -268,17 +299,15 @@ export function openPairOverlay(): Promise<boolean> {
 
       nextBtn.textContent = '② カメラやくのQRを よみとる';
       nextBtn.hidden = false;
-      nextBtn.onclick = () => {
-        nextBtn.hidden = true;
+      const beginScanStep = (): void => {
         qrCanvas.hidden = true;
         stepEl.textContent = '② カメラやくの端末に出た QR を うつしてね';
         setStatus('QRをさがしています...');
-        void startScan(handlePayload).catch((error) => {
-          setStatus(
-            `カメラをつかえませんでした (${errText(error)})。下のコード欄をつかってね。`,
-            true,
-          );
-        });
+        void startScan(handlePayload).catch((error) => offerScanRetry(error, beginScanStep));
+      };
+      nextBtn.onclick = () => {
+        nextBtn.hidden = true;
+        beginScanStep();
       };
     };
 
@@ -300,14 +329,12 @@ export function openPairOverlay(): Promise<boolean> {
       rolesBox.hidden = true;
       manualBox.hidden = false;
 
-      stepEl.textContent = '① がめんやくの端末に出ている QR を うつしてね';
-      setStatus('QRをさがしています...');
-      await startScan(handlePayload).catch((error) => {
-        setStatus(
-          `カメラをつかえませんでした (${errText(error)})。下のコード欄をつかってね。`,
-          true,
-        );
-      });
+      const beginScanStep = (): void => {
+        stepEl.textContent = '① がめんやくの端末に出ている QR を うつしてね';
+        setStatus('QRをさがしています...');
+        void startScan(handlePayload).catch((error) => offerScanRetry(error, beginScanStep));
+      };
+      beginScanStep();
     };
 
     const acceptOffer = async (payload: SignalPayload): Promise<void> => {
@@ -318,8 +345,8 @@ export function openPairOverlay(): Promise<boolean> {
       }
       setStatus('カメラを起動しています...');
 
-      // 立てて使うので背面カメラ。QR読み取りに使ったものをそのまま送信に使う
-      sendStream = await navigator.mediaDevices.getUserMedia({
+      // 立てて使うので背面カメラ。固まったら時間ぎれにする
+      sendStream = await getCameraWithTimeout({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });

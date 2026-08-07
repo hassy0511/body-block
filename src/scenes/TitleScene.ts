@@ -62,6 +62,7 @@ export class TitleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     const refreshPairLink = (): void => {
+      if (!pairLink.scene) return; // シーンを離れたあとに resolve されても書き込まない
       pairLink.setText(
         isRemoteActive()
           ? '📡 2だいモードで あそびちゅう (タップで きる)'

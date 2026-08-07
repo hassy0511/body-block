@@ -118,6 +118,9 @@ export class TowerScene extends Phaser.Scene {
     });
 
     void this.panel.start().then((ok) => {
+      // カメラ起動が返ってくる前にシーンを離れていたら何もしない。
+      // 破棄ずみのテキストへ書き込むと例外になる(実機で発生した)
+      if (!this.statusText.scene) return;
       this.statusText.setText(
         ok
           ? `「スタート！」を おしてから ${SHOT_TIME_LIMIT_SEC}びょう。ポーズを とってね`
