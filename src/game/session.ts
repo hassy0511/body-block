@@ -36,6 +36,9 @@ export interface CaptureResult {
 /** 1ゲームで挑戦するお題の数。 */
 export const THEMES_PER_GAME = 3;
 
+/** モード2 のゴールの高さ(=難しさ)。導入画面で選ぶ。SPEC_MODE2.md §5 参照。 */
+export type TowerGoal = 'low' | 'mid' | 'high';
+
 export interface ThemeResult {
   theme: LoadedTheme;
   judge: JudgeResult;
@@ -43,6 +46,14 @@ export interface ThemeResult {
 
 export class GameSession {
   playerCount = 1;
+
+  /**
+   * モード2 のゴールの高さ。導入画面で選び直すまで前回の選択を保つ
+   * (「もういちど」でシーンだけ再開しても同じ高さで遊べるように、
+   * startGame ではリセットしない)。
+   */
+  towerGoal: TowerGoal = 'mid';
+
   themes: LoadedTheme[] = [];
   results: ThemeResult[] = [];
   currentIndex = 0;

@@ -9,7 +9,7 @@ import Phaser from 'phaser';
 import { buildCutoutPiece, type CutoutPiece } from '../core/cutout';
 import { registerDecomp } from '../core/physics';
 import { playFanfare, playTap } from '../core/sound';
-import { session } from '../game/session';
+import { session, type TowerGoal } from '../game/session';
 import { CameraPanel, PANEL_DEPTH, type CapturedFrame } from '../game/cameraPanel';
 import {
   addBackground,
@@ -51,11 +51,18 @@ const CAM_HEIGHT = Math.round((STAGE_WIDTH * 9) / 16);
 const ARENA_TOP = CAM_Y + CAM_HEIGHT;
 const FLOOR_Y = GAME_HEIGHT - 190;
 /**
- * ここまで積めたらクリア。舞台の上端(カメラのすぐ下)を目標にする。
- * 「舞台を埋めきる」が目標なので分かりやすく、
- * 塔がカメラの表示に重なるところまで伸びることもない。
+ * ゴールライン(=難しさ)。導入画面で選ぶ(session.towerGoal)。
+ *
+ * カメラから離れて撮るほどブロックが小さくなり、同じ高さでも難しくなる。
+ * 立つ距離は部屋の事情で変えられないので、高さのほうを選べるようにした。
+ * 「たかい」は舞台の上端(カメラのすぐ下)で、選択制にする前の固定値と同じ。
+ * 塔がそれよりカメラ表示に食い込むことはない。
  */
-const GOAL_Y = ARENA_TOP + 40;
+const GOAL_Y_BY_LEVEL: Record<TowerGoal, number> = {
+  low: FLOOR_Y - 320,
+  mid: FLOOR_Y - 480,
+  high: ARENA_TOP + 40,
+};
 
 /**
  * ブロックの高さの上限(px)。
@@ -72,6 +79,7 @@ export class TowerScene extends Phaser.Scene {
   private textureKeys: string[] = [];
 
   private remaining = TOTAL_SHOTS;
+  private goalY = GOAL_Y_BY_LEVEL.mid;
   private finished = false;
   private busy = false;
   private goalReachedAt: number | null = null;
@@ -94,6 +102,7 @@ export class TowerScene extends Phaser.Scene {
     this.blocks = [];
     this.textureKeys = [];
     this.remaining = TOTAL_SHOTS;
+    this.goalY = GOAL_Y_BY_LEVEL[session.towerGoal];
     this.finished = false;
     this.busy = false;
     this.goalReachedAt = null;
@@ -163,17 +172,17 @@ export class TowerScene extends Phaser.Scene {
       );
     }
 
-    // 目標ライン
+    // 目標ライン(高さは導入画面で選んだもの)
     const line = this.add.graphics();
     line.lineStyle(4, COLORS.accent, 0.9);
     line.beginPath();
     for (let x = STAGE_X; x < STAGE_RIGHT; x += 22) {
-      line.moveTo(x, GOAL_Y);
-      line.lineTo(Math.min(x + 12, STAGE_RIGHT), GOAL_Y);
+      line.moveTo(x, this.goalY);
+      line.lineTo(Math.min(x + 12, STAGE_RIGHT), this.goalY);
     }
     line.strokePath();
     this.add
-      .text(STAGE_X, GOAL_Y + 8, 'ここまで つみあげよう！', bodyStyle(20))
+      .text(STAGE_X, this.goalY + 8, 'ここまで つみあげよう！', bodyStyle(20))
       .setColor('#209aa1');
 
     this.bestMarker = this.add.graphics();
@@ -256,7 +265,7 @@ export class TowerScene extends Phaser.Scene {
 
   private progressPercent(): number {
     if (this.bestTop === null) return 0;
-    const total = FLOOR_Y - GOAL_Y;
+    const total = FLOOR_Y - this.goalY;
     const reached = FLOOR_Y - this.bestTop;
     return Math.max(0, Math.min(100, Math.round((reached / total) * 100)));
   }
@@ -411,7 +420,7 @@ export class TowerScene extends Phaser.Scene {
       this.updateCountText();
     }
 
-    if (topY !== null && topY <= GOAL_Y) {
+    if (topY !== null && topY <= this.goalY) {
       this.goalReachedAt ??= performance.now();
       if (performance.now() - this.goalReachedAt >= HOLD_MS) this.succeed();
       return;
