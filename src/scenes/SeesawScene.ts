@@ -55,11 +55,24 @@ const FLOOR_Y = GAME_HEIGHT - 190;
  * 釣り合いの目安: sin(傾き) ≒ ブロック質量×腕の長さ ÷ (板質量×PIVOT_DROP)
  */
 const PIVOT_Y = FLOOR_Y - 162;
-const PIVOT_DROP = 42;
+const PIVOT_DROP = 50;
 const PLANK_HALF = 250;
 const PLANK_THICK = 20;
 /** 板は重くする。戻す力のもとになり、落下の衝撃でも暴れにくくなる。 */
-const PLANK_DENSITY = 0.2;
+const PLANK_DENSITY = 0.25;
+
+/**
+ * ブロックの重さと大きさ。
+ *
+ * 最初の調整(密度0.008・上限なし)は重さに敏感すぎて、
+ * 1個目を少し外して載せただけで終わっていた(実機の感想)。
+ * ねらいは「1個目はまず安全。同じ側に2〜3個かたよると倒れる」。
+ * ブロックを軽く・板の戻す力(PIVOT_DROP × PLANK_DENSITY)を強くして、
+ * 倒れるまでの積み重ねがドラマになる配分にする。
+ */
+const BLOCK_DENSITY = 0.004;
+/** 近づいて撮った巨大ブロックで一発が決まらないよう、高さだけ頭打ちにする。 */
+const MAX_BLOCK_HEIGHT = 240;
 /**
  * 板の回転慣性(Matter の inertia)。既定値(質量×長さ²/12 ≒ 4200万)のままだと
  * 重い板は回り出しが遅すぎて、セーフ判定の時間内に釣り合いの角度まで
@@ -374,7 +387,7 @@ export class SeesawScene extends Phaser.Scene {
       frictionStatic: 1.1,
       frictionAir: 0.02,
       restitution: 0,
-      density: 0.008,
+      density: BLOCK_DENSITY,
     };
     let block: Phaser.Physics.Matter.Image;
     try {
@@ -386,7 +399,8 @@ export class SeesawScene extends Phaser.Scene {
       block = this.matter.add.image(x, y, key, undefined, options);
     }
 
-    block.setScale(viewScale);
+    // 大きさだけは頭打ちにする(タワーと同じ)。位置は必ず写っていたところ
+    block.setScale(Math.min(viewScale, MAX_BLOCK_HEIGHT / piece.sprite.height));
     block.setOrigin(centroid.x / piece.sprite.width, centroid.y / piece.sprite.height);
     block.setDepth(PANEL_DEPTH + 5);
 
@@ -461,6 +475,9 @@ export class SeesawScene extends Phaser.Scene {
   private tip(loser: number): void {
     this.phase = 'over';
     this.tippedBy = loser;
+    // 決着後も物理を回しておくと、雪崩に押された板が一回転してしまう。
+    // 「傾いて負けた瞬間」の絵で止める
+    this.matter.body.setStatic(this.plankBody, true);
     playFanfare(false);
     const message =
       this.challengers > 1
