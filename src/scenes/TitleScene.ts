@@ -36,7 +36,7 @@ export class TitleScene extends Phaser.Scene {
     };
 
     // どのゲームも最初から自由に選べる。ステージ解放のような縛りは作らない。
-    // 7本になったので2列に並べる(1列だと縦に収まらない)
+    // モードが増えたので2列に並べる(1列だと縦に収まらない)
     const modes: [string, string, boolean][] = [
       ['ポーズでハマる！', 'PlayerSelect', false],
       ['たいそうタワー', 'TowerIntro', true],
@@ -45,6 +45,7 @@ export class TitleScene extends Phaser.Scene {
       ['いきものずかん', 'ZukanIntro', false],
       ['コロコロゴール！', 'RollIntro', true],
       ['あめあめキャッチ', 'CatchIntro', false],
+      ['シーソーバランス', 'SeesawIntro', true],
     ];
 
     modes.forEach(([label, scene, alt], index) => {

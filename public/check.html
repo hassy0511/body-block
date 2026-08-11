@@ -128,7 +128,7 @@
     <div class="wrap">
       <h1>からだブロック凹凸 うつしてポン！ — 動作確認チェックリスト</h1>
       <p class="sub">
-        全7モード実装ずみ。タイトルからどのゲームも自由に選べます（ステージ解放なし）。チェックはこの端末に保存されます。
+        全8モード実装ずみ。タイトルからどのゲームも自由に選べます（ステージ解放なし）。チェックはこの端末に保存されます。
       </p>
 
       <p class="links">
@@ -392,7 +392,39 @@
       </section>
 
       <section>
-        <h2>8. 2台モード（ゲームで使う）</h2>
+        <h2>8. シーソーバランス（順番に対戦）★今回追加</h2>
+        <p class="how">
+          タイトル → シーソーバランス → 人数（1〜4人） → 交代でシーソーに載せる。たおした人の負け。
+        </p>
+        <label class="check"
+          ><input type="checkbox" data-key="m8-plank" /><span
+            >シーソーの板が中央で支えられ、載せた重さで自然に傾く</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m8-safe" /><span
+            >落下の衝撃で一瞬揺れても、持ちこたえれば「セーフ！」で次の番になる</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m8-tip" /><span
+            >大きく傾いたままになると「◯にんめが たおしちゃった…」と負けが出る</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m8-win" /><span
+            >全部（1人6個 / 複数人は1人3個ずつ）載せきると「みんなの かち！」になる</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m8-slide" /><span
+            >あとからじわじわ滑って傾いた場合も、最後に載せた人の負けになる</span
+          ></label
+        >
+      </section>
+
+      <section>
+        <h2>9. 2台モード（ゲームで使う）</h2>
         <p class="how">
           カメラやく端末: pair.html を開き「カメラやく」を選ぶ。画面やく端末:
           ゲームのタイトル下「2だいで つなぐ」からQRを見せ合う。両方とも同じWi-Fiにつなぐこと。

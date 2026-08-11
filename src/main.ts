@@ -19,6 +19,8 @@ import { RollIntroScene } from './scenes/RollIntroScene';
 import { RollScene } from './scenes/RollScene';
 import { CatchIntroScene } from './scenes/CatchIntroScene';
 import { CatchScene } from './scenes/CatchScene';
+import { SeesawIntroScene } from './scenes/SeesawIntroScene';
+import { SeesawScene } from './scenes/SeesawScene';
 import { installErrorOverlay } from './core/errorOverlay';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './ui/ui';
 
@@ -66,6 +68,8 @@ const game = new Phaser.Game({
     RollScene,
     CatchIntroScene,
     CatchScene,
+    SeesawIntroScene,
+    SeesawScene,
   ],
 });
 
