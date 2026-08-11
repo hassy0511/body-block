@@ -55,12 +55,14 @@ export class CameraController {
 
     const remote = getRemoteStream();
     if (remote) {
-      // 鏡像にしない。背面カメラで「離れた場所から人を写す」構図なので、
-      // テレビ中継と同じ見え方が自然。鏡像にしたら直感に反した(実機の感想)
+      // 鏡像で表示する(facingMode を 'user' 扱いにする)。
+      // 一度「テレビ中継と同じ向きが自然だろう」と鏡像をやめたが、
+      // 実際にプレーすると画面を鏡として立ち位置を直すので、
+      // 鏡像でないと左右の調整が逆になり遊びにくかった(実機の感想)。
+      // 当初の鏡像設計が正しかった
       this.usingRemote = true;
-      this.currentFacingMode = 'environment';
+      this.currentFacingMode = 'user';
       this.videoEl.srcObject = remote;
-      this.videoEl.style.transform = 'none';
       await this.videoEl.play();
       return;
     }

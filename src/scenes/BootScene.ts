@@ -33,6 +33,11 @@ export class BootScene extends Phaser.Scene {
       delay: 400,
       loop: true,
       callback: () => {
+        // シーンを離れたあとに発火しても破棄ずみのテキストへ書き込まない
+        if (!status.scene) {
+          timer.remove();
+          return;
+        }
         dots = (dots + 1) % 4;
         status.setText(`よみこみちゅう${'.'.repeat(dots)}`);
       },
@@ -53,6 +58,8 @@ export class BootScene extends Phaser.Scene {
       this.scene.start('Title');
     } catch {
       timer.remove();
+      // 読み込み失敗が返る前にシーンを離れていたら何もしない(破棄ずみテキスト対策)
+      if (!status.scene) return;
       status.setText(
         'よみこみに しっぱいしました\nつうしんかんきょうを たしかめて\nリロードしてね',
       );

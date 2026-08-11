@@ -128,7 +128,7 @@
     <div class="wrap">
       <h1>からだブロック凹凸 うつしてポン！ — 動作確認チェックリスト</h1>
       <p class="sub">
-        全5モード実装ずみ。タイトルからどのゲームも自由に選べます（ステージ解放なし）。チェックはこの端末に保存されます。
+        全7モード実装ずみ。タイトルからどのゲームも自由に選べます（ステージ解放なし）。チェックはこの端末に保存されます。
       </p>
 
       <p class="links">
@@ -271,7 +271,7 @@
       </section>
 
       <section>
-        <h2>4. こわしてバトル（対戦）★今回追加</h2>
+        <h2>4. こわしてバトル（対戦）</h2>
         <p class="how">
           タイトル → こわしてバトル → ひとりで /
           ふたりで。カメラは中央上、写った位置が攻撃先の柱の同じ位置に落ちる。
@@ -304,7 +304,7 @@
       </section>
 
       <section>
-        <h2>5. いきものずかん（鑑賞）★今回追加</h2>
+        <h2>5. いきものずかん（鑑賞）</h2>
         <p class="how">
           タイトル → いきものずかん。勝ち負けなし。「なかまを よぶ」で何度でも追加。
         </p>
@@ -331,7 +331,68 @@
       </section>
 
       <section>
-        <h2>6. 2台モード（ゲームで使う）</h2>
+        <h2>6. コロコロゴール！（協力パズル）★今回追加</h2>
+        <p class="how">
+          タイトル → コロコロゴール！ → 人数 →
+          撮影するたびにボールが転がる。かごに入れたらクリア。撮影6回。
+        </p>
+        <label class="check"
+          ><input type="checkbox" data-key="m6-layout" /><span
+            >ボールの出口（▼マーク）とゴールのかごが、毎回ちがう場所に出る（出口と反対側にかご）</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m6-freeze" /><span
+            >落ちたブロックはその場に固定され、次のブロックやボールに押されても崩れない</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m6-ball" /><span
+            >撮影のたびにボールが1個転がり出て、ブロックの上を転がる</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m6-goal" /><span
+            >かごに上から入ると「ゴーーール！」。床を転がっただけでは入らない（壁ではじかれる）</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m6-fail" /><span
+            >ボールが止まると「とどかなかった…」と出て次の撮影に進める。6回使い切ると結果表示</span
+          ></label
+        >
+      </section>
+
+      <section>
+        <h2>7. あめあめキャッチ（順番に対戦）★今回追加</h2>
+        <p class="how">
+          タイトル → あめあめキャッチ → 人数（1〜4人） → 1人ずつ撮影→アメが降る→乗った数が点数。
+        </p>
+        <label class="check"
+          ><input type="checkbox" data-key="m7-rain" /><span
+            >撮影後にブロックが固定され、アメが24個パラパラ降ってくる</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m7-count" /><span
+            >体の上に乗ったアメだけが数えられる（床に転がった分は入らない）</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m7-turn" /><span
+            >【複数人】番が終わるとブロックとアメが片付き、「◯にんめの
+            ばん！」と交代する。右上に点数一覧が出る</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="m7-result" /><span
+            >全員終わると優勝者が発表される（同数はひきわけ）</span
+          ></label
+        >
+      </section>
+
+      <section>
+        <h2>8. 2台モード（ゲームで使う）</h2>
         <p class="how">
           カメラやく端末: pair.html を開き「カメラやく」を選ぶ。画面やく端末:
           ゲームのタイトル下「2だいで つなぐ」からQRを見せ合う。両方とも同じWi-Fiにつなぐこと。
@@ -355,6 +416,12 @@
         <label class="check"
           ><input type="checkbox" data-key="pair-body" /><span
             >カメラやくを2〜3m離して立てたとき、全身が画面やく側ではっきり見える</span
+          ></label
+        >
+        <label class="check"
+          ><input type="checkbox" data-key="pair-mirror" /><span
+            >★今回変更:
+            画面やくの映像は鏡と同じ向き（自分が右へ動くと、画面の中の自分も同じ方向へ動いて見える）</span
           ></label
         >
         <label class="check"

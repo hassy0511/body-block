@@ -15,6 +15,10 @@ import { BattleIntroScene } from './scenes/BattleIntroScene';
 import { BattleScene } from './scenes/BattleScene';
 import { ZukanIntroScene } from './scenes/ZukanIntroScene';
 import { ZukanScene } from './scenes/ZukanScene';
+import { RollIntroScene } from './scenes/RollIntroScene';
+import { RollScene } from './scenes/RollScene';
+import { CatchIntroScene } from './scenes/CatchIntroScene';
+import { CatchScene } from './scenes/CatchScene';
 import { installErrorOverlay } from './core/errorOverlay';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from './ui/ui';
 
@@ -58,6 +62,10 @@ const game = new Phaser.Game({
     BattleScene,
     ZukanIntroScene,
     ZukanScene,
+    RollIntroScene,
+    RollScene,
+    CatchIntroScene,
+    CatchScene,
   ],
 });
 

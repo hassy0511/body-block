@@ -132,7 +132,7 @@ export const RANK_LABELS: Record<PoseRank, string> = {
 
 /** SPEC_MODE1.md §3 のランク分け。 */
 export function rankForScore(score: number): PoseRank {
-  if (score >= 90) return 'perfect';
+  if (score >= 85) return 'perfect';
   if (score >= 70) return 'good';
   if (score >= 50) return 'close';
   return 'retry';
@@ -141,7 +141,14 @@ export function rankForScore(score: number): PoseRank {
 /**
  * プレイヤーのマスクとお題の穴マスクを比較してスコアを出す。
  *
- * score = 100 × |P ∩ T| / |P ∪ T|
+ * score = 100 × √(|P ∩ T| / |P ∪ T|)
+ *
+ * IoU をそのまま100倍すると難しすぎた(実機の感想)。
+ * 輪郭のギザつき・服のふくらみ・切り抜きの粗があるため、
+ * かなり上手に合わせても IoU は 0.5〜0.7 程度にしかならず、
+ * 「いいかんじ！」にすら届かない。平方根で持ち上げると
+ * IoU 0.49 → 70てん、0.25 → 50てん になり、
+ * がんばりが点数に見えるようになる。順位づけは単調なので変わらない。
  */
 export function judgePose(player: BinaryMask, target: BinaryMask): JudgeResult {
   const alignedPlayer = alignMask(player, target);
@@ -160,7 +167,7 @@ export function judgePose(player: BinaryMask, target: BinaryMask): JudgeResult {
   }
 
   const union = overlap + miss + overflow;
-  const score = union === 0 ? 0 : (overlap / union) * 100;
+  const score = union === 0 ? 0 : Math.sqrt(overlap / union) * 100;
   // 演出上は甘めに見せてよい(SPEC_MODE1.md §3)ので 5点刻みで切り上げる
   const displayScore = Math.min(100, Math.ceil(score / 5) * 5);
 

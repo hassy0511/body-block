@@ -35,20 +35,28 @@ export class TitleScene extends Phaser.Scene {
       this.scene.start(scene);
     };
 
-    // どのゲームも最初から自由に選べる。ステージ解放のような縛りは作らない
+    // どのゲームも最初から自由に選べる。ステージ解放のような縛りは作らない。
+    // 7本になったので2列に並べる(1列だと縦に収まらない)
     const modes: [string, string, boolean][] = [
       ['ポーズでハマる！', 'PlayerSelect', false],
       ['たいそうタワー', 'TowerIntro', true],
       ['まもって！シェルター', 'ShelterIntro', false],
       ['こわしてバトル', 'BattleIntro', true],
       ['いきものずかん', 'ZukanIntro', false],
+      ['コロコロゴール！', 'RollIntro', true],
+      ['あめあめキャッチ', 'CatchIntro', false],
     ];
 
     modes.forEach(([label, scene, alt], index) => {
-      createButton(this, GAME_WIDTH / 2, 420 + index * 138, label, () => start(scene), {
-        width: 480,
-        height: 110,
-        fontSize: 32,
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      // 最後の1つが余ったら中央に置く
+      const isLastAlone = index === modes.length - 1 && modes.length % 2 === 1;
+      const x = isLastAlone ? GAME_WIDTH / 2 : GAME_WIDTH / 2 + (column === 0 ? -174 : 174);
+      createButton(this, x, 410 + row * 126, label, () => start(scene), {
+        width: 336,
+        height: 104,
+        fontSize: 26,
         ...(alt ? { color: COLORS.accent, pressedColor: COLORS.accentDark } : {}),
       });
     });
